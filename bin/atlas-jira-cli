@@ -1,0 +1,39 @@
+#!/usr/bin/env ruby
+
+require 'awesome_print'
+require 'log4r'
+require 'json'
+
+begin
+  lib_dir = File.expand_path(File.join(__FILE__, '..', '..', 'lib'))
+  $LOAD_PATH.unshift lib_dir unless $LOAD_PATH.include? lib_dir
+end
+
+require 'atlassian/rest/jira/client'
+
+include Log4r
+
+begin
+
+  log = Logger.new 'atlas-jira-cli'
+  log.outputters = Outputter.stdout
+  log.level = Log4r::DEBUG
+
+  options = {
+    :endpoint => "http://localhost:2990/jira",
+    :logger => log,
+    :username => 'admin',
+    :password => 'admin',
+  }
+
+  client = Atlassian::Rest::Jira::Client.new(options)
+  begin
+    resp = client.jql("project = foo")
+    ap resp
+  rescue Atlassian::Rest::HttpStatus::HttpError => e
+    puts "Got error: " + e.to_s
+    ap e.content
+    exit 1
+  end
+end
+

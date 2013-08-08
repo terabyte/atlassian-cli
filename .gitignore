@@ -1,0 +1,13 @@
+# vi: ft=sh
+
+# Don't check this in because locks in versions, making breakage due to
+# upstream upgrades less obvious.
+Gemfile.lock
+
+# never check in bundler junk
+/.bundle
+
+# temp files
+*.sw?
+.DS_Store
+~*
