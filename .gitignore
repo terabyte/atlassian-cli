@@ -7,6 +7,9 @@ Gemfile.lock
 # never check in bundler junk
 /.bundle
 
+# files created by plugin sdk for testing
+amps-standalone/
+
 # temp files
 *.sw?
 .DS_Store

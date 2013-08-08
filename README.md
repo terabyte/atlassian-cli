@@ -18,6 +18,18 @@ TODO
 # setting up ssh-agent
 TODO
 
+# DEV GUIDE
+
+To run an instance of jira for testing using the atlassian plugin sdk
+
+    atlas-run-standalone --server localhost --product jira --version 5.2.11
+
+Note that you have to create the project and some issues first... intial db is empty.
+
+To hit an endpoint using curl, for example:
+
+    curl --user admin:admin 'http://localhost:2990/jira/rest/api/2/search?jql=project%3Dfoo'
+
 # TODO
 There are many things I'd eventually like to implement.  For now, they are
 broken up by product.
