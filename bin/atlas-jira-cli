@@ -35,7 +35,6 @@ def parse_opts
 
   options[:logger].outputters = Outputter.stdout
   options[:logger].level = Log4r::INFO
-  options[:username], options[:password] = Atlassian::Cli::Credentials.new().get_credentials()
 
   optparse = OptionParser.new do |o|
     o.banner = "Usage: atlas-jira-cli [command] [options]"
@@ -77,6 +76,9 @@ def parse_opts
 
   # this leaves unknown arguments alone
   optparse.parse!
+
+  # do pw after parse so we don't get prompted before showing help
+  options[:username], options[:password] = Atlassian::Cli::Credentials.new().get_credentials()
 
   # configure outputter
   if options[:columns]
