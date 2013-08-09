@@ -49,17 +49,22 @@ def parse_opts
     o.separator "Options:"
     o.separator ""
 
-    o.on('-e', '--endpoint', 'Endpoint (e.g. https://jira.example.com:2990/jira)') do |e|
+    o.on('-e', '--endpoint [URL]', 'Endpoint (e.g. https://jira.example.com:2990/jira)') do |e|
       options[:endpoint] = e
     end
 
     default_columns = Atlassian::Cli::Outputters::JiraIssue::DEFAULT_COLUMNS
-    o.on('--columns comma,separated,list', "Comma-separated list of fields to include in display (defaults are #{default_columns.join(',')} and may be included multiple times)") do |l|
+    # TODO: allow preserving order?
+    o.on('--columns comma,separated,list', "Comma-separated list of fields to include in display (defaults are #{default_columns.join(',')}.  Include 'default' to add default fields to a custom list") do |l|
       unless options[:columns]
         options[:columns] = []
       end
       l.split(',').each do |i|
-        options[:columns] << i.to_sym
+        if i == "default"
+          default_columns.each {|c| options[:columns] << c}
+        else
+          options[:columns] << i.to_sym
+        end
       end
     end
 
