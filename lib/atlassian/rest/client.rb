@@ -183,7 +183,12 @@ module Atlassian
 
         status = response.status.to_i
         if status >= 200 && status < 300
-          parsed = JSON.parse(response.content).deep_symbolize_keys
+          if response.content.size > 1
+            parsed = JSON.parse(response.content).deep_symbolize_keys
+          else
+            # empty means empty - jira does this =(
+            parsed = {}
+          end
           return parsed
         end
 

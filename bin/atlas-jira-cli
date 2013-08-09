@@ -24,6 +24,7 @@ ATLAS_CLI_RC = ".atlas-cli-rc"
 VALID_COMMANDS = {
   :comment => "Add a comment to an issue by ID or key (supplied as a bare argument), comment text supplied by --commentText",
   :jql => "Query issues using JQL (argument should be a JQL query string)",
+  :transition => "Transition an issue by ID or key (supplied as a bare argument)",
   :view => "View an issue by ID or key (supplied as a bare argument)",
 }
 
@@ -94,6 +95,10 @@ def parse_opts
       options[:commentText] = ct
     end
 
+    o.on('--editState [new state]', "State to transition the issue to") do |state|
+      options[:editState] = state
+    end
+
     o.on('--cacert [FILE.pem]', 'cacert file to use for SSL') do |f|
       options[:cacert] = f
     end
@@ -130,7 +135,7 @@ def parse_opts
       puts optparse
       exit 1
     end
-  when :view
+  when :view, :transition
     unless options[:key_or_id] = ARGV.shift
       puts optparse
       exit 1
@@ -147,7 +152,7 @@ def parse_opts
   return options
 end
 
-def get_issue_from_key_or_id(client, key_or_id)
+def get_issue_from_key_or_id(options, client, key_or_id)
   issue = nil
   if key_or_id.match(/^[0-9]+$/)
     issue = client.get_issue_by_id(key_or_id)
@@ -157,6 +162,9 @@ def get_issue_from_key_or_id(client, key_or_id)
   end
   if issue.nil? || issue.empty?
     raise Atlassian::NotFoundError.new("Unable to find issue by key or id #{key_or_id}")
+  end
+  if options[:debug]
+    ap issue
   end
   issue
 end
@@ -191,7 +199,7 @@ begin
       puts options[:outputter].display_issues_table(issues)
 
     when :view
-      issue = get_issue_from_key_or_id(client, options[:key_or_id])
+      issue = get_issue_from_key_or_id(options, client, options[:key_or_id])
       # try to get comments if we got an issue
       if issue
         comments = client.get_comments_for_issue(issue)[:comments]
@@ -202,8 +210,15 @@ begin
       puts options[:outputter].display_issue_table(issue, comments)
 
     when :comment
-      issue = get_issue_from_key_or_id(client, options[:key_or_id])
+      issue = get_issue_from_key_or_id(options, client, options[:key_or_id])
       response = client.post_comment_for_issue(issue, {:body => options[:commentText]})
+      if options[:debug]
+        ap response
+      end
+
+    when :transition
+      issue = get_issue_from_key_or_id(options, client, options[:key_or_id])
+      response = client.post_transition(issue, options[:editState], options[:commentText])
       if options[:debug]
         ap response
       end

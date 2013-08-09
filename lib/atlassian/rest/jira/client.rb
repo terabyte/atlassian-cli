@@ -39,6 +39,56 @@ module Atlassian
           return response
         end
 
+        # https://answers.atlassian.com/questions/171351/how-to-change-the-status-of-an-issue-via-rest-api
+        # and https://docs.atlassian.com/jira/REST/latest/#idp1368336
+        # and a lot of perserverence =|
+        def post_transition(issue, new_state, comment_text = nil)
+          # get list of possible states
+          @log.debug "Searching for available transitions for issue #{issue[:key]}"
+          response = json_get("rest/api/2/issue/#{issue[:key]}/transitions?expand=transitions,fields")
+
+          target_id = nil
+          target_name = nil
+          transition_name = nil
+          response[:transitions].each do |transition|
+            if transition[:name].match(Regexp.new(new_state, Regexp::IGNORECASE))
+              @log.debug("Matched transition name #{transition[:name]}")
+              target_id = transition[:id]
+              transition_name = transition[:name]
+              target_name = transition[:to][:name]
+              break
+            end
+            if transition[:to][:name].match(Regexp.new(new_state, Regexp::IGNORECASE))
+              @log.debug("Matched destination state name #{transition[:name]}")
+              target_id = transition[:id]
+              transition_name = transition[:name]
+              target_name = transition[:to][:name]
+              break
+            end
+          end
+
+          if target_id.nil?
+            raise Atlassian::IllegalArgumentError.new("Unable to find matching state transition for new state #{new_state}")
+          end
+
+          json = {
+            :transition => {
+              :id => target_id
+            }
+          }
+
+          if comment_text
+            json[:update] = {
+              :comment => [ {
+                :add => {
+                  :body => comment_text
+                }
+              } ]
+            }
+          end
+          response = json_post("rest/api/2/issue/#{issue[:key]}/transitions?expand=transitions,fields", json)
+          @log.info "Successfully performed transition #{transition_name} on issue #{issue[:key]} from state #{issue[:fields][:status][:name]} to state #{target_name}"
+        end
       end
     end
   end
