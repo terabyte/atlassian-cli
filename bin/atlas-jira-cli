@@ -22,8 +22,10 @@ include Log4r
 # Consts
 ATLAS_CLI_RC = ".atlas-cli-rc"
 VALID_COMMANDS = {
-  :jql => "Query issues using JQL",
-  :view => "View and issue by ID or key",
+  :comment => "Add a comment to an issue by ID or key (supplied as a bare argument), comment text supplied by --commentText",
+  :jql => "Query issues using JQL (argument should be a JQL query string)",
+  :transition => "Transition an issue by ID or key (supplied as a bare argument)",
+  :view => "View an issue by ID or key (supplied as a bare argument)",
 }
 
 def parse_opts
@@ -89,6 +91,14 @@ def parse_opts
       end
     end
 
+    o.on('--commentText "[TEXT]"', "Text of the comment to add to the given issue") do |ct|
+      options[:commentText] = ct
+    end
+
+    o.on('--editState [new state]', "State to transition the issue to") do |state|
+      options[:editState] = state
+    end
+
     o.on('--cacert [FILE.pem]', 'cacert file to use for SSL') do |f|
       options[:cacert] = f
     end
@@ -117,17 +127,21 @@ def parse_opts
 
   # now what should be left is "[command] [...]"
   command = ARGV.shift.andand.to_sym
-  case command
+  options[:command] = command
+  case options[:command]
   when :jql
     # TODO: validate args
-    options[:command] = command
     unless options[:jql] = ARGV.shift
       puts optparse
       exit 1
     end
-  when :view
-    options[:command] = command
+  when :view, :transition
     unless options[:key_or_id] = ARGV.shift
+      puts optparse
+      exit 1
+    end
+  when :comment
+    unless (options[:key_or_id] = ARGV.shift) && options[:commentText]
       puts optparse
       exit 1
     end
@@ -136,6 +150,23 @@ def parse_opts
     exit 1
   end
   return options
+end
+
+def get_issue_from_key_or_id(options, client, key_or_id)
+  issue = nil
+  if key_or_id.match(/^[0-9]+$/)
+    issue = client.get_issue_by_id(key_or_id)
+  else
+    # try issue key
+    issue = client.get_issue_by_key(key_or_id)
+  end
+  if issue.nil? || issue.empty?
+    raise Atlassian::NotFoundError.new("Unable to find issue by key or id #{key_or_id}")
+  end
+  if options[:debug]
+    ap issue
+  end
+  issue
 end
 
 begin
@@ -150,35 +181,48 @@ begin
   client = Atlassian::Rest::Jira::Client.new(options)
   begin
 
+    response = nil
+    issue = nil
+    issues = nil
+    comments = nil
+
     ####
     ## Main Command Loop
     ####
     case options[:command]
     when :jql
-      resp = client.jql(options[:jql])
+      response = client.jql(options[:jql])
       if options[:debug]
-        ap resp
+        ap response
       end
-      puts options[:outputter].display_issues_table(resp[:issues])
+      issues = response[:issues]
+      puts options[:outputter].display_issues_table(issues)
 
     when :view
-      resp = nil
-      comments = nil
-      if options[:key_or_id].match(/^[0-9]+$/)
-        # only contains numbers, must be an id
-        resp = client.get_issue_by_id(options[:key_or_id])
-      else
-        # try issue key
-        resp = client.get_issue_by_key(options[:key_or_id])
-      end
+      issue = get_issue_from_key_or_id(options, client, options[:key_or_id])
       # try to get comments if we got an issue
-      if resp
-        comments = client.get_comments_for_issue(resp)[:comments]
+      if issue
+        comments = client.get_comments_for_issue(issue)[:comments]
       end
       if options[:debug]
         ap comments
       end
-      puts options[:outputter].display_issue_table(resp, comments)
+      puts options[:outputter].display_issue_table(issue, comments)
+
+    when :comment
+      issue = get_issue_from_key_or_id(options, client, options[:key_or_id])
+      response = client.post_comment_for_issue(issue, {:body => options[:commentText]})
+      if options[:debug]
+        ap response
+      end
+
+    when :transition
+      issue = get_issue_from_key_or_id(options, client, options[:key_or_id])
+      response = client.post_transition(issue, options[:editState], options[:commentText])
+      if options[:debug]
+        ap response
+      end
+
     else
       raise "ERROR: unhandled command #{options[:command]}"
     end
