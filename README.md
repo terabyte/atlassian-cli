@@ -34,17 +34,17 @@ To hit an endpoint using curl, for example:
 There are many things I'd eventually like to implement.  For now, they are
 broken up by product.
 
-* TEST COVERAGE
-* Implement oauth support?
-* Support mac OSX keychain?
-
 ## JIRA
-* JQL Query Pagination
-* View issue by certain fields / comments
-* Comment on issues
 * Create issues
-* Transition issue state
+* Change priority
+* Change Components
+* Change fixversions
+* JQL Query Pagination
 * Attach files
+
+## Confluence
+* Fetch raw page, upload raw page
+* vim/emacs integration
 
 ## Stash
 * Search for projects/repositories
@@ -52,9 +52,10 @@ broken up by product.
 * Create pull request
 * Permissions admin?
 
-## Confluence
-* Fetch raw page, upload raw page
-* vim/emacs integration
+## Generic
+* TEST COVERAGE
+* Implement oauth support?
+* Support mac OSX keychain?
 
 ## Bamboo
 * Search / list builds
