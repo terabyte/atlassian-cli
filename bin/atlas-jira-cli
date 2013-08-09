@@ -20,19 +20,33 @@ require 'atlassian/rest/jira/client'
 include Log4r
 
 # Consts
+ATLAS_CLI_RC = ".atlas-cli-rc"
 VALID_COMMANDS = {
   :jql => "Query issues using JQL",
 }
 
 def parse_opts
 
-  # defaults
+  # defaults overridable via ~/.atlas-cli-rc
   options = {
     :endpoint => "http://localhost:2990/jira",
-    :logger => Logger.new('atlas-jira-cli'),
-    :outputter => Atlassian::Cli::Outputters::JiraIssue.new(),
+    :columns => nil,
+    :debug => nil,
   }
 
+  if File.readable?(File.join(Dir.home, ATLAS_CLI_RC))
+    rc_str = ""
+    File.open(File.join(Dir.home, ATLAS_CLI_RC)) do |f|
+      f.each_line do |l|
+        next if l.match(/^\s*\/\//)
+        rc_str = rc_str + l.chomp
+      end
+    end
+    options.update(JSON.parse(rc_str).deep_symbolize_keys)
+  end
+
+  options[:outputter] = Atlassian::Cli::Outputters::JiraIssue.new()
+  options[:logger] = Logger.new('atlas-jira-cli')
   options[:logger].outputters = Outputter.stdout
   options[:logger].level = Log4r::INFO
 

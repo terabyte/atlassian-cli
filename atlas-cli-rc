@@ -1,0 +1,11 @@
+// vi: ft=javascript
+// this file lets you set default settings for the atlas-cli suite of
+// applications.  It is just a simple json format.  It is eval'd and used as the
+// default options hash, so look at the code for exactly what you can do here,
+// but below is an example.  Copy it to ~/.atlas-cli-rc to get started.
+
+// Lines begining with // are ignored
+{
+  "endpoint":"http://jira.example.com",
+  "otherkeysgohere":"somevalue"
+}
