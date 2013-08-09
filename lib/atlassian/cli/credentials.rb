@@ -36,7 +36,7 @@ module Atlassian
         NETRC_HOST = 'atlassian-cli.example.com'
 
         def get_credentials
-          File.open(File.join("#{Dir.home}", NETRC_PATH)) do |f|
+          File.open(File.join(Dir.home, NETRC_PATH)) do |f|
             found_start = false
             username = nil
             password = nil
