@@ -1,35 +1,115 @@
 #!/usr/bin/env ruby
 
+require 'andand'
 require 'awesome_print'
-require 'log4r'
 require 'json'
+require 'log4r'
+require 'optparse'
+
 
 begin
   lib_dir = File.expand_path(File.join(__FILE__, '..', '..', 'lib'))
   $LOAD_PATH.unshift lib_dir unless $LOAD_PATH.include? lib_dir
 end
 
+require 'atlassian/cli/credentials'
 require 'atlassian/rest/jira/client'
 
 include Log4r
 
-begin
+# Consts
+VALID_COMMANDS = {
+  :jql => "Query issues using JQL",
+}
 
+DEFAULT_COLUMNS = %w{ key status reporter assignee summary }
+
+def parse_opts
   log = Logger.new 'atlas-jira-cli'
   log.outputters = Outputter.stdout
-  log.level = Log4r::DEBUG
+  log.level = Log4r::INFO
 
+  # defaults
   options = {
     :endpoint => "http://localhost:2990/jira",
     :logger => log,
-    :username => 'admin',
-    :password => 'admin',
   }
+
+  options[:username], options[:password] = Atlassian::Cli::Credentials.new().get_credentials()
+
+  optparse = OptionParser.new do |o|
+    o.banner = "Usage: atlas-jira-cli [command] [options]"
+
+    o.separator ""
+    o.separator "Commands:"
+    VALID_COMMANDS.each_key.sort do |k|
+      o.separator sprintf("    %10s - %s", k.to_s, VALID_COMMANDS[k])
+    end
+
+    o.separator ""
+    o.separator "Options:"
+    o.separator ""
+
+    o.on('-e', '--endpoint', 'Endpoint (e.g. https://jira.example.com:2990/jira)') do |e|
+      options[:endpoint] = e
+    end
+
+    o.on('--columns comma,separated,list', "Comma-separated list of fields to include in display (defaults are #{DEFAULT_COLUMNS.join(',')} and may be included multiple times)") do |l|
+      unless options[:columns]
+        options[:columns] = []
+      end
+      l.split(',').each do |i|
+        options[:columns] << i
+      end
+    end
+
+    o.on('-d', '--debug', 'enable debug output') do
+      options[:debug] = true
+      log.level = Log4r::DEBUG
+    end
+
+    o.on('-h', '--help', 'Display this screen') do
+      puts o
+      exit
+    end
+  end
+
+  # this leaves unknown arguments alone
+  optparse.parse!
+  # now what should be left is "[command] [...]"
+  command = ARGV.shift.andand.to_sym
+  case command
+  when :jql
+    # TODO: validate args
+    options[:command] = command
+    unless options[:jql] = ARGV.shift
+      puts optparse
+      exit 1
+    end
+  else
+    puts optparse
+    exit 1
+  end
+  return options
+end
+
+begin
+
+  options = parse_opts
+
+  puts "Options:"
+  ap options
 
   client = Atlassian::Rest::Jira::Client.new(options)
   begin
-    resp = client.jql("project = foo")
-    ap resp
+
+    case options[:command]
+    when :jql
+      resp = client.jql(options[:jql])
+      ap resp
+    else
+      raise "ERROR: unhandled command #{options[:command]}"
+    end
   rescue Atlassian::Rest::HttpStatus::HttpError => e
     puts "Got error: " + e.to_s
     ap e.content
