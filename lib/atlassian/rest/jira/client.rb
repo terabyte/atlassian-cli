@@ -110,6 +110,7 @@ module Atlassian
           end
           response = json_put("rest/api/2/issue/#{issue[:key]}", json)
           @log.info "Successfully updated issue #{issue[:key]}"
+          response
         end
       end
     end
