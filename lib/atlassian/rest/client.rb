@@ -146,13 +146,13 @@ module Atlassian
 
         status = response.status.to_i
         if status >= 200 && status < 300
-          parsed = JSON.parse(response.content)
+          parsed = JSON.parse(response.content).deep_symbolize_keys
           return parsed
         end
 
         # some sort of error may have happened, or it could just be a 404 or something.
         begin
-          parsed = JSON.parse(response.content)
+          parsed = JSON.parse(response.content).deep_symbolize_keys
           if status < 500
             raise HttpClientError.new(status, parsed, response.reason)
           else
@@ -177,13 +177,13 @@ module Atlassian
 
         status = response.status.to_i
         if status >= 200 && status < 300
-          parsed = JSON.parse(response.content)
+          parsed = JSON.parse(response.content).deep_symbolize_keys
           return parsed
         end
 
         # some sort of error may have happened, or it could just be a 404 or something.
         begin
-          parsed = JSON.parse(response.content)
+          parsed = JSON.parse(response.content).deep_symbolize_keys
           if status < 500
             raise HttpClientError.new(status, parsed, response.reason)
           else

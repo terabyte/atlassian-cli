@@ -20,7 +20,9 @@ Gem::Specification.new do |s|
   # library dependencies (needed by lib/* )
   s.add_dependency('andand')
   s.add_dependency('awesome_print')
+  s.add_dependency('highline') # for pw console entry
   s.add_dependency('httpclient')
   s.add_dependency('json')
   s.add_dependency('log4r')
+  s.add_dependency('terminal-table')
 end
