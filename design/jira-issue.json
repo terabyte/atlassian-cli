@@ -1,0 +1,101 @@
+{
+    :expand => "editmeta,renderedFields,transitions,changelog,operations",
+        :id => "10000",
+      :self => "http://localhost:2990/jira/rest/api/2/issue/10000",
+       :key => "FOO-1",
+    :fields => {
+                              :summary => "issue 1 summary, G!",
+                             :progress => {
+            :progress => 0,
+               :total => 0
+        },
+                            :issuetype => {
+                   :self => "http://localhost:2990/jira/rest/api/2/issuetype/1",
+                     :id => "1",
+            :description => "A problem which impairs or prevents the functions of the product.",
+                :iconUrl => "http://localhost:2990/jira/images/icons/issuetypes/bug.png",
+                   :name => "Bug",
+                :subtask => false
+        },
+                                :votes => {
+                :self => "http://localhost:2990/jira/rest/api/2/issue/FOO-1/votes",
+               :votes => 0,
+            :hasVoted => false
+        },
+                           :resolution => nil,
+                          :fixVersions => [],
+                       :resolutiondate => nil,
+                            :timespent => nil,
+                             :reporter => {
+                    :self => "http://localhost:2990/jira/rest/api/2/user?username=admin",
+                    :name => "admin",
+            :emailAddress => "admin@example.com",
+              :avatarUrls => {
+                :"16x16" => "http://localhost:2990/jira/secure/useravatar?size=small&avatarId=10122",
+                :"48x48" => "http://localhost:2990/jira/secure/useravatar?avatarId=10122"
+            },
+             :displayName => "admin",
+                  :active => true
+        },
+        :aggregatetimeoriginalestimate => nil,
+                              :updated => "2013-08-09T03:24:35.000-0700",
+                              :created => "2013-08-08T15:03:16.000-0700",
+                          :description => "this is the issue's description yo",
+                             :priority => {
+               :self => "http://localhost:2990/jira/rest/api/2/priority/3",
+            :iconUrl => "http://localhost:2990/jira/images/icons/priorities/major.png",
+               :name => "Major",
+                 :id => "3"
+        },
+                              :duedate => nil,
+                           :issuelinks => [],
+                              :watches => {
+                  :self => "http://localhost:2990/jira/rest/api/2/issue/FOO-1/watchers",
+            :watchCount => 1,
+            :isWatching => true
+        },
+                             :subtasks => [],
+                               :status => {
+                   :self => "http://localhost:2990/jira/rest/api/2/status/1",
+            :description => "The issue is open and ready for the assignee to start work on it.",
+                :iconUrl => "http://localhost:2990/jira/images/icons/statuses/open.png",
+                   :name => "Open",
+                     :id => "1"
+        },
+                               :labels => [],
+                             :assignee => {
+                    :self => "http://localhost:2990/jira/rest/api/2/user?username=admin",
+                    :name => "admin",
+            :emailAddress => "admin@example.com",
+              :avatarUrls => {
+                :"16x16" => "http://localhost:2990/jira/secure/useravatar?size=small&avatarId=10122",
+                :"48x48" => "http://localhost:2990/jira/secure/useravatar?avatarId=10122"
+            },
+             :displayName => "admin",
+                  :active => true
+        },
+                            :workratio => -1,
+                :aggregatetimeestimate => nil,
+                              :project => {
+                  :self => "http://localhost:2990/jira/rest/api/2/project/FOO",
+                    :id => "10000",
+                   :key => "FOO",
+                  :name => "foo",
+            :avatarUrls => {
+                :"16x16" => "http://localhost:2990/jira/secure/projectavatar?size=small&pid=10000&avatarId=10011",
+                :"48x48" => "http://localhost:2990/jira/secure/projectavatar?pid=10000&avatarId=10011"
+            }
+        },
+                             :versions => [],
+                          :environment => nil,
+                         :timeestimate => nil,
+                    :aggregateprogress => {
+            :progress => 0,
+               :total => 0
+        },
+                           :lastViewed => "2013-08-09T03:24:35.216-0700",
+                           :components => [],
+                 :timeoriginalestimate => nil,
+                   :aggregatetimespent => nil
+    }
+}

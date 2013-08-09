@@ -13,6 +13,8 @@ begin
 end
 
 require 'atlassian/cli/credentials'
+require 'atlassian/cli/outputters/jira_issue'
+require 'atlassian/monkeypatch'
 require 'atlassian/rest/jira/client'
 
 include Log4r
@@ -22,19 +24,17 @@ VALID_COMMANDS = {
   :jql => "Query issues using JQL",
 }
 
-DEFAULT_COLUMNS = %w{ key status reporter assignee summary }
-
 def parse_opts
-  log = Logger.new 'atlas-jira-cli'
-  log.outputters = Outputter.stdout
-  log.level = Log4r::INFO
 
   # defaults
   options = {
     :endpoint => "http://localhost:2990/jira",
-    :logger => log,
+    :logger => Logger.new('atlas-jira-cli'),
+    :outputter => Atlassian::Cli::Outputters::JiraIssue.new(),
   }
 
+  options[:logger].outputters = Outputter.stdout
+  options[:logger].level = Log4r::INFO
   options[:username], options[:password] = Atlassian::Cli::Credentials.new().get_credentials()
 
   optparse = OptionParser.new do |o|
@@ -54,18 +54,19 @@ def parse_opts
       options[:endpoint] = e
     end
 
-    o.on('--columns comma,separated,list', "Comma-separated list of fields to include in display (defaults are #{DEFAULT_COLUMNS.join(',')} and may be included multiple times)") do |l|
+    default_columns = Atlassian::Cli::Outputters::JiraIssue::DEFAULT_COLUMNS
+    o.on('--columns comma,separated,list', "Comma-separated list of fields to include in display (defaults are #{default_columns.join(',')} and may be included multiple times)") do |l|
       unless options[:columns]
         options[:columns] = []
       end
       l.split(',').each do |i|
-        options[:columns] << i
+        options[:columns] << i.to_sym
       end
     end
 
     o.on('-d', '--debug', 'enable debug output') do
       options[:debug] = true
-      log.level = Log4r::DEBUG
+      options[:logger].level = Log4r::DEBUG
     end
 
     o.on('-h', '--help', 'Display this screen') do
@@ -76,6 +77,12 @@ def parse_opts
 
   # this leaves unknown arguments alone
   optparse.parse!
+
+  # configure outputter
+  if options[:columns]
+    options[:outputter].display_columns = options[:columns]
+  end
+
   # now what should be left is "[command] [...]"
   command = ARGV.shift.andand.to_sym
   case command
@@ -97,8 +104,10 @@ begin
 
   options = parse_opts
 
-  puts "Options:"
-  ap options
+  if options[:debug]
+    # yeah, this next line is hawt
+    ap options.clone.update(:password => options[:password].andand.gsub(/./, "*"))
+  end
 
   client = Atlassian::Rest::Jira::Client.new(options)
   begin
@@ -106,7 +115,8 @@ begin
     case options[:command]
     when :jql
       resp = client.jql(options[:jql])
-      ap resp
+      #ap resp[:issues].first
+      puts options[:outputter].display_issues_table(resp[:issues])
     else
       raise "ERROR: unhandled command #{options[:command]}"
     end

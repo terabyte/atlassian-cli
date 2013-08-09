@@ -1,7 +1,9 @@
+require 'atlassian/exceptions'
+
 module Atlassian
   module Rest
 
-    class AtlassianRestError < Exception
+    class AtlassianRestError < AtlassianError
     end
 
     class AuthenticationError < AtlassianRestError
