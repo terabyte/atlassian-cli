@@ -156,6 +156,9 @@ begin
     case options[:command]
     when :jql
       resp = client.jql(options[:jql])
+      if options[:debug]
+        ap resp
+      end
       puts options[:outputter].display_issues_table(resp[:issues])
 
     when :view
