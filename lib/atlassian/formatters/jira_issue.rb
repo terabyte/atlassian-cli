@@ -46,11 +46,13 @@ module Atlassian
     }
 
     COLUMN_FORMATTING_MAP = {
-      :id => Proc.new {|str| str.to_s.green },
-      :key => Proc.new {|str| str.to_s.green },
-      :default => Proc.new {|str| str.to_s },
-      :priority => Proc.new {|str| str.to_s.red },
-      :status => Proc.new {|str| str.to_s.red },
+      :id => Proc.new {|f,str| str.to_s.green },
+      :key => Proc.new {|f,str| str.to_s.green },
+      :default => Proc.new {|f,str| str.to_s },
+      :priority => Proc.new {|f,str| str.to_s.red },
+      :status => Proc.new {|f,str| str.to_s.red },
+      :summary => Proc.new {|f,str| f.shorten(str.to_s) },
+      :description => Proc.new {|f,str| f.shorten(str.to_s) },
     }
 
     # this class turns a json object returned by the rest service into a flat hash of column-to-value mappings
@@ -90,11 +92,17 @@ module Atlassian
 
       def format_text_by_column(col, data)
         if COLUMN_FORMATTING_MAP[col]
-          COLUMN_FORMATTING_MAP[col].call(data)
+          COLUMN_FORMATTING_MAP[col].call(self, data)
         else
-          COLUMN_FORMATTING_MAP[:default].call(data)
+          COLUMN_FORMATTING_MAP[:default].call(self, data)
         end
       end
+
+      # try to cut out crazy whitespace / linebreaks
+      def shorten(text)
+        text.andand.gsub(/\s{3,}/, " ").andand.gsub(/\n/, " ").andand.gsub(/\r/, "")
+      end
+
     end
   end
 end
