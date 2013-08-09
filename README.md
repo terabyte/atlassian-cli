@@ -38,7 +38,7 @@ broken up by product.
 * Support mac OSX keychain?
 
 ## JIRA
-* JQL Query
+* JQL Query Pagination
 * View issue by certain fields / comments
 * Comment on issues
 * Create issues
