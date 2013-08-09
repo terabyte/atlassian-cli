@@ -27,8 +27,14 @@ module Atlassian
           response = json_get("rest/api/2/search", {'jql' => "key = #{key}"})
           return response[:issues].andand.first
         end
-      end
 
+        # https://developer.atlassian.com/display/JIRADEV/JIRA+REST+API+Example+-+Add+Comment
+        def get_comments_for_issue(issue)
+          response = json_get("rest/api/2/issue/#{issue[:key]}/comment")
+          return response
+        end
+
+      end
     end
   end
 end

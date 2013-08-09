@@ -1,3 +1,5 @@
+require 'time'
+
 require 'atlassian/exceptions'
 
 module Atlassian
@@ -8,16 +10,17 @@ module Atlassian
       :id => Proc.new {|issue| issue[:id] },
       :key => Proc.new {|issue| issue[:key] },
       :url => Proc.new {|issue| issue[:self] },
-      :description => Proc.new {|issue| issue[:fields][:description] },
-      :created => Proc.new {|issue| issue[:fields][:created] },
-      :updated => Proc.new {|issue| issue[:fields][:updated] },
-      :priority => Proc.new {|issue| issue[:fields][:priority][:name] },
-      :status => Proc.new {|issue| issue[:fields][:status][:name] },
-      :summary => Proc.new {|issue| issue[:fields][:summary] },
-      :assignee => Proc.new {|issue| issue[:fields][:assignee][:name] },
-      :reporter => Proc.new {|issue| issue[:fields][:reporter][:name] },
-      :fixversions => Proc.new {|issue| issue[:fields][:fixversions].andand.collect {|x| x[:name] } }, # TODO: is this right?
-      :components => Proc.new {|issue| issue[:fields][:components].andand.collect {|x| x[:name] } },
+      :description => Proc.new {|issue| issue[:fields].andand[:description] },
+      :created => Proc.new {|issue| issue[:fields].andand[:created] },
+      :updated => Proc.new {|issue| issue[:fields].andand[:updated] },
+      :priority => Proc.new {|issue| issue[:fields].andand[:priority].andand[:name] },
+      :status => Proc.new {|issue| issue[:fields].andand[:status].andand[:name] },
+      :summary => Proc.new {|issue| issue[:fields].andand[:summary] },
+      :assignee => Proc.new {|issue| issue[:fields].andand[:assignee].andand[:name] },
+      :reporter => Proc.new {|issue| issue[:fields].andand[:reporter].andand[:name] },
+      :fixversions => Proc.new {|issue| issue[:fields].andand[:fixversions].andand.collect {|x| x[:name] } },
+      :components => Proc.new {|issue| issue[:fields].andand[:components].andand.collect {|x| x[:name] } },
+      :default => Proc.new {|issue,colname| issue[:fields].andand[colname] || nil },
     }
 
     # indicates the weight of each column for sorting.  I made these values up.
@@ -48,11 +51,16 @@ module Atlassian
     COLUMN_FORMATTING_MAP = {
       :id => Proc.new {|f,str| str.to_s.green },
       :key => Proc.new {|f,str| str.to_s.green },
+      :name => Proc.new {|f,str| str.to_s.green },
+      :displayName => Proc.new {|f,str| str.to_s.yellow },
       :default => Proc.new {|f,str| str.to_s },
       :priority => Proc.new {|f,str| str.to_s.red },
       :status => Proc.new {|f,str| str.to_s.red },
       :summary => Proc.new {|f,str| f.shorten(str.to_s) },
       :description => Proc.new {|f,str| f.shorten(str.to_s) },
+      :body => Proc.new {|f,str| f.shorten(str.to_s) },
+      :created => Proc.new {|f, str| Time.parse(str).localtime.strftime("%c") },
+      :updated => Proc.new {|f, str| Time.parse(str).localtime.strftime("%c") },
     }
 
     # this class turns a json object returned by the rest service into a flat hash of column-to-value mappings
@@ -64,7 +72,11 @@ module Atlassian
       end
 
       def get_column(col, issue)
-        ISSUE_COLUMN_MAP.values_at(col).andand.first.andand.call(issue)
+        if ISSUE_COLUMN_MAP[col]
+          ISSUE_COLUMN_MAP[col].call(issue)
+        else
+          ISSUE_COLUMN_MAP[:default].call(issue, col)
+        end
       end
 
       # sorts columns by the weight
@@ -98,9 +110,10 @@ module Atlassian
         end
       end
 
-      # try to cut out crazy whitespace / linebreaks
+      # try to cut out crazy whitespace / or other weird characters in
+      # free-form text input fields where people often paste-spew
       def shorten(text)
-        text.andand.gsub(/\s{3,}/, " ").andand.gsub(/\n/, " ").andand.gsub(/\r/, "")
+        text.andand.gsub(/\s{3,}/, " ").andand.gsub(/\r/, "")
       end
 
     end

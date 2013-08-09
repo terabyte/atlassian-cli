@@ -163,6 +163,7 @@ begin
 
     when :view
       resp = nil
+      comments = nil
       if options[:key_or_id].match(/^[0-9]+$/)
         # only contains numbers, must be an id
         resp = client.get_issue_by_id(options[:key_or_id])
@@ -170,7 +171,14 @@ begin
         # try issue key
         resp = client.get_issue_by_key(options[:key_or_id])
       end
-      puts options[:outputter].display_issue_table(resp) # XXX TODO
+      # try to get comments if we got an issue
+      if resp
+        comments = client.get_comments_for_issue(resp)[:comments]
+      end
+      if options[:debug]
+        ap comments
+      end
+      puts options[:outputter].display_issue_table(resp, comments)
     else
       raise "ERROR: unhandled command #{options[:command]}"
     end

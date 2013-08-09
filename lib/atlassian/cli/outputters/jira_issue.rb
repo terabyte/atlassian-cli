@@ -1,3 +1,4 @@
+require 'highline'
 require 'terminal-table'
 
 require 'atlassian/formatters/jira_issue'
@@ -22,11 +23,22 @@ module Atlassian
           @formatter = Atlassian::Formatters::JiraIssue.new(:color => options[:color])
         end
 
-        def display_issue_table(issue)
+        def display_issue_table(issue, comments = [])
           issue_map = @formatter.get_issue_map(issue)
           table = Terminal::Table.new do |t|
+            width, height = HighLine::SystemExtensions.terminal_size
+            # XXX TODO: bug in the gem prevents this currently
+            #t.style = {:width => width}
+
             @formatter.sort_cols(issue_map.keys).each do |col|
-              t << [header(col), @formatter.format_text_by_column(col, issue_map[col])]
+              t << [{:value => header(col), :alignment => :right}, @formatter.format_text_by_column(col, issue_map[col])]
+            end
+            t << :separator
+            comments.each do |c|
+              name = @formatter.format_text_by_column(:displayName, c[:author][:displayName]) + "(" + @formatter.format_text_by_column(:name, c[:author][:name]) + ")\n" + @formatter.format_text_by_column(:created, c[:created])
+              body = @formatter.format_text_by_column(:body, c[:body])
+
+              t << [{:value => name, :alignment => :center}, body]
             end
           end
         end
