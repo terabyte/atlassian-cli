@@ -14,10 +14,10 @@ module Atlassian
       :priority => Proc.new {|issue| issue[:fields][:priority][:name] },
       :status => Proc.new {|issue| issue[:fields][:status][:name] },
       :summary => Proc.new {|issue| issue[:fields][:summary] },
-      :components => Proc.new {|issue| issue[:fields][:components] },
       :assignee => Proc.new {|issue| issue[:fields][:assignee][:name] },
       :reporter => Proc.new {|issue| issue[:fields][:reporter][:name] },
-      :fixversions => Proc.new {|issue| issue[:fields][:fixversions] }, # TODO: is this right?
+      :fixversions => Proc.new {|issue| issue[:fields][:fixversions].andand.collect {|x| x[:name] } }, # TODO: is this right?
+      :components => Proc.new {|issue| issue[:fields][:components].andand.collect {|x| x[:name] } },
     }
 
     # indicates the weight of each column for sorting.  I made these values up.
@@ -74,14 +74,27 @@ module Atlassian
         row = []
         cols.each do |col|
           data = get_column(col, issue)
-          if COLUMN_FORMATTING_MAP[col]
-            data = COLUMN_FORMATTING_MAP[col].call(data)
-          end
+          data = format_text_by_column(col, data)
           row << data
         end
         row
       end
 
+      def get_issue_map(issue)
+        issue_map = {}
+        sort_cols(ISSUE_COLUMN_MAP.keys).each do |col|
+          issue_map[col] = ISSUE_COLUMN_MAP[col].call(issue)
+        end
+        return issue_map
+      end
+
+      def format_text_by_column(col, data)
+        if COLUMN_FORMATTING_MAP[col]
+          COLUMN_FORMATTING_MAP[col].call(data)
+        else
+          COLUMN_FORMATTING_MAP[:default].call(data)
+        end
+      end
     end
   end
 end

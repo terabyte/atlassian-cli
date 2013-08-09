@@ -22,7 +22,13 @@ module Atlassian
           @formatter = Atlassian::Formatters::JiraIssue.new(:color => options[:color])
         end
 
-        def display_single_issue(issue)
+        def display_issue_table(issue)
+          issue_map = @formatter.get_issue_map(issue)
+          table = Terminal::Table.new do |t|
+            @formatter.sort_cols(issue_map.keys).each do |col|
+              t << [header(col), @formatter.format_text_by_column(col, issue_map[col])]
+            end
+          end
         end
 
         def display_issues_table(issues)
