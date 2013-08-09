@@ -41,7 +41,7 @@ def parse_opts
 
     o.separator ""
     o.separator "Commands:"
-    VALID_COMMANDS.each_key.sort do |k|
+    VALID_COMMANDS.keys.sort.each do |k|
       o.separator sprintf("    %10s - %s", k.to_s, VALID_COMMANDS[k])
     end
 
