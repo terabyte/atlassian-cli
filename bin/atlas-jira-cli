@@ -32,6 +32,7 @@ def parse_opts
     :endpoint => "http://localhost:2990/jira",
     :columns => nil,
     :debug => nil,
+    :cacert => nil,
   }
 
   if File.readable?(File.join(Dir.home, ATLAS_CLI_RC))
@@ -85,6 +86,10 @@ def parse_opts
           options[:columns] << i.to_sym
         end
       end
+    end
+
+    o.on('--cacert [FILE.pem]', 'cacert file to use for SSL') do |f|
+      options[:cacert] = f
     end
 
     o.on('-d', '--debug', 'enable debug output') do

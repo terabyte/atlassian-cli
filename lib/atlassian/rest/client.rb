@@ -111,6 +111,12 @@ module Atlassian
           # W T F.
           @extra_headers["Authorization"] = "Basic"
         end
+
+        if options[:cacert]
+          @log.debug "Adding custom CA certificate #{options[:cacert]}"
+          @raw_http_client.ssl_config.add_trust_ca(options[:cacert])
+        end
+
       end
 
       # returns an httpclient response object (HTTP::Message)
