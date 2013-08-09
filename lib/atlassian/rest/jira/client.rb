@@ -89,6 +89,28 @@ module Atlassian
           response = json_post("rest/api/2/issue/#{issue[:key]}/transitions?expand=transitions,fields", json)
           @log.info "Successfully performed transition #{transition_name} on issue #{issue[:key]} from state #{issue[:fields][:status][:name]} to state #{target_name}"
         end
+
+        # https://developer.atlassian.com/display/JIRADEV/Updating+an+Issue+via+the+JIRA+REST+APIs suggests to use the /editmeta endpoint.  IT LIES.
+        def issue_update(issue, fields, comment_text = nil)
+
+          json = {
+            :update => {}
+          }
+
+          fields.keys.each do |f|
+            json[:update][f] = [ { :set => fields[f] } ]
+          end
+
+          if comment_text
+            json[:update][:comment] = [ {
+              :add => {
+                :body => comment_text
+              }
+            } ]
+          end
+          response = json_put("rest/api/2/issue/#{issue[:key]}", json)
+          @log.info "Successfully updated issue #{issue[:key]}"
+        end
       end
     end
   end
