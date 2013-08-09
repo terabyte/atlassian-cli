@@ -26,6 +26,7 @@ VALID_COMMANDS = {
   :jql => "Query issues using JQL (argument should be a JQL query string)",
   :transition => "Transition an issue by ID or key (supplied as a bare argument)",
   :view => "View an issue by ID or key (supplied as a bare argument)",
+  :edit => "Edit fields of an existing issue (supplied as a bare argument",
 }
 
 def parse_opts
@@ -36,6 +37,7 @@ def parse_opts
     :columns => nil,
     :debug => nil,
     :cacert => nil,
+    :fields => {},
   }
 
   if File.readable?(File.join(Dir.home, ATLAS_CLI_RC))
@@ -76,6 +78,31 @@ def parse_opts
       options[:endpoint] = e
     end
 
+    o.separator ""
+    o.separator "Edit Options: (some of these are applicable to other commands like transition, create, etc)"
+    o.separator ""
+
+    o.on('--commentText [TEXT]', "Text of the comment to add to the given issue") do |ct|
+      options[:commentText] = ct
+    end
+
+    o.on('--field NAME,"TEXT"', Array, "Text of description field") do |n,t|
+      options[:fields][n.to_sym] = t
+    end
+    o.separator "    Valid fields include summary, description, duedate, environment, timeestimate"
+
+    o.separator ""
+    o.separator "Transition Options:"
+    o.separator ""
+
+    o.on('--editState [new state]', "State to transition the issue to") do |state|
+      options[:editState] = state
+    end
+
+    o.separator ""
+    o.separator "View / Jql Options:"
+    o.separator ""
+
     default_columns = Atlassian::Cli::Outputters::JiraIssue::DEFAULT_COLUMNS
     # TODO: allow preserving order?
     o.on('--columns comma,separated,list', "Comma-separated list of fields to include in display (defaults are #{default_columns.join(',')}.  Include 'default' to add default fields to a custom list") do |l|
@@ -89,14 +116,6 @@ def parse_opts
           options[:columns] << i.to_sym
         end
       end
-    end
-
-    o.on('--commentText "[TEXT]"', "Text of the comment to add to the given issue") do |ct|
-      options[:commentText] = ct
-    end
-
-    o.on('--editState [new state]', "State to transition the issue to") do |state|
-      options[:editState] = state
     end
 
     o.on('--cacert [FILE.pem]', 'cacert file to use for SSL') do |f|
@@ -135,7 +154,7 @@ def parse_opts
       puts optparse
       exit 1
     end
-  when :view, :transition
+  when :view, :transition, :edit
     unless options[:key_or_id] = ARGV.shift
       puts optparse
       exit 1
@@ -219,6 +238,13 @@ begin
     when :transition
       issue = get_issue_from_key_or_id(options, client, options[:key_or_id])
       response = client.post_transition(issue, options[:editState], options[:commentText])
+      if options[:debug]
+        ap response
+      end
+
+    when :edit
+      issue = get_issue_from_key_or_id(options, client, options[:key_or_id])
+      response = client.issue_update(issue, options[:fields], options[:commentText])
       if options[:debug]
         ap response
       end

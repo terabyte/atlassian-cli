@@ -137,6 +137,20 @@ module Atlassian
         return response
       end
 
+      def raw_put(url, data = nil, headers = {})
+        @log.debug "Performing PUT on url #{url}"
+        @log.debug "DATA: #{data}"
+        response = @raw_http_client.put(url, data, @extra_headers.merge(headers))
+        return response
+      end
+
+      def raw_update(url, data = nil, headers = {})
+        @log.debug "Performing UPDATE on url #{url}"
+        @log.debug "DATA: #{data}"
+        response = @raw_http_client.update(url, data, @extra_headers.merge(headers))
+        return response
+      end
+
       # uses a GET to send json-based query string, returns content on a
       # success, otherwise raises an exception.
       def json_get(path, parameters = {}, headers = {})
@@ -205,6 +219,43 @@ module Atlassian
           raise HttpServerError.new(status, response.content, response.reason)
         end
       end
+
+      def json_put(path, parameters = {}, headers = {})
+        if !headers['Content-Type']
+          headers['Content-Type'] = 'application/json'
+        end
+
+        uri = @endpoint + path
+
+        @log.debug "JSON PUT: " + parameters.to_json
+
+        response = raw_put(uri, parameters.to_json, headers)
+
+        status = response.status.to_i
+        if status >= 200 && status < 300
+          if response.content.size > 1
+            parsed = JSON.parse(response.content).deep_symbolize_keys
+          else
+            # empty means empty - jira does this =(
+            parsed = {}
+          end
+          return parsed
+        end
+
+        # some sort of error may have happened, or it could just be a 404 or something.
+        begin
+          parsed = JSON.parse(response.content).deep_symbolize_keys
+          if status < 500
+            raise HttpClientError.new(status, parsed, response.reason)
+          else
+            raise HttpServerError.new(status, parsed, response.reason)
+          end
+        rescue Exception => e
+          raise e if e.is_a?(HttpBaseStatus)
+          raise HttpServerError.new(status, response.content, response.reason)
+        end
+      end
+
     end
   end
 end
