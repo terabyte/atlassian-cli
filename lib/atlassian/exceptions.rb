@@ -5,5 +5,8 @@ module Atlassian
 
   class IllegalArgumentError < AtlassianError
   end
+
+  class NotFoundError < AtlassianError
+  end
 end
 

@@ -96,7 +96,7 @@ module Atlassian
 
       def get_issue_map(issue)
         issue_map = {}
-        sort_cols(ISSUE_COLUMN_MAP.keys).each do |col|
+        sort_cols(ISSUE_COLUMN_MAP.keys).reject {|x| x == :default}.each do |col|
           issue_map[col] = ISSUE_COLUMN_MAP[col].call(issue)
         end
         return issue_map

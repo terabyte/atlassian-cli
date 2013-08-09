@@ -34,6 +34,11 @@ module Atlassian
           return response
         end
 
+        def post_comment_for_issue(issue, comment)
+          response = json_post("rest/api/2/issue/#{issue[:key]}/comment", comment)
+          return response
+        end
+
       end
     end
   end
