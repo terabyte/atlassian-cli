@@ -18,7 +18,7 @@ module Atlassian
       :summary => Proc.new {|issue| issue[:fields].andand[:summary] },
       :assignee => Proc.new {|issue| issue[:fields].andand[:assignee].andand[:name] },
       :reporter => Proc.new {|issue| issue[:fields].andand[:reporter].andand[:name] },
-      :fixversions => Proc.new {|issue| issue[:fields].andand[:fixversions].andand.collect {|x| x[:name] } },
+      :fixversions => Proc.new {|issue| issue[:fields].andand[:fixVersions].andand.collect {|x| x[:name] } },
       :components => Proc.new {|issue| issue[:fields].andand[:components].andand.collect {|x| x[:name] } },
       :default => Proc.new {|issue,colname| issue[:fields].andand[colname] || nil },
     }
