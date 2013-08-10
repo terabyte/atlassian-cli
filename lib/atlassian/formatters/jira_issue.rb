@@ -53,16 +53,21 @@ module Atlassian
     COLUMN_FORMATTING_MAP = {
       :id => Proc.new {|f,str| str.to_s.green },
       :key => Proc.new {|f,str| str.to_s.green },
-      :name => Proc.new {|f,str| str.to_s.green },
-      :displayName => Proc.new {|f,str| str.to_s.yellow },
+      :name => Proc.new {|f,str| str.to_s.greenish },
+      :reporter => Proc.new {|f,str| str.to_s.greenish },
+      :assignee => Proc.new {|f,str| str.to_s.greenish },
+      :displayName => Proc.new {|f,str| str.to_s.yellowish },
       :default => Proc.new {|f,str| str.to_s },
       :priority => Proc.new {|f,str| str.to_s.red },
       :status => Proc.new {|f,str| str.to_s.red },
       :summary => Proc.new {|f,str| f.shorten(str.to_s) },
       :description => Proc.new {|f,str| f.shorten(str.to_s) },
       :body => Proc.new {|f,str| f.shorten(str.to_s) },
-      :created => Proc.new {|f, str| Time.parse(str).localtime.strftime("%c") },
-      :updated => Proc.new {|f, str| Time.parse(str).localtime.strftime("%c") },
+      :created => Proc.new {|f, str| Time.parse(str).localtime.strftime("%c").gray },
+      :updated => Proc.new {|f, str| Time.parse(str).localtime.strftime("%c").gray },
+      :fixversions => Proc.new {|f,arr| (arr.nil? || arr.empty?) ? '' : ("'" + arr.join("', '") + "'").cyan },
+      :affectsversions => Proc.new {|f,arr| (arr.nil? || arr.empty?) ? '' : ("'" + arr.join("', '") + "'").cyan },
+      :components => Proc.new {|f,arr| (arr.nil? || arr.empty?) ? '' : ("'" + arr.join("', '") + "'").yellowish },
     }
 
     # this class turns a json object returned by the rest service into a flat hash of column-to-value mappings

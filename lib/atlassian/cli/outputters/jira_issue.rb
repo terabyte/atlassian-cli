@@ -33,11 +33,11 @@ module Atlassian
             @formatter.sort_cols(issue_map.keys).each do |col|
               t << [{:value => header(col), :alignment => :right}, @formatter.format_text_by_column(col, issue_map[col])]
             end
-            t << :separator
             comments.each do |c|
-              name = @formatter.format_text_by_column(:displayName, c[:author][:displayName]) + "(" + @formatter.format_text_by_column(:name, c[:author][:name]) + ")\n" + @formatter.format_text_by_column(:created, c[:created])
+              name = @formatter.format_text_by_column(:displayName, c[:author][:displayName]) + " (" + @formatter.format_text_by_column(:name, c[:author][:name]) + ")\n" + @formatter.format_text_by_column(:created, c[:created])
               body = @formatter.format_text_by_column(:body, c[:body])
 
+              t << :separator
               t << [{:value => name, :alignment => :center}, body]
             end
           end
