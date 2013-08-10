@@ -86,23 +86,23 @@ def parse_opts
     o.separator "Edit Options: (some of these are applicable to other commands like transition, create, etc)"
     o.separator ""
 
-    o.on('--assignee [TEXT]', "Assign to user matching the given text") do |t|
+    o.on('--assignee [REGEX]', "Assign to user matching the given regex") do |t|
       options[:assignee] = t
     end
 
-    o.on('--priority [TEXT]', "Change to the priority matching the given text") do |t|
+    o.on('--priority [REGEX]', "Change to the priority matching the given regex") do |t|
       options[:priority] = t
     end
 
-    o.on('--components [+|-][TEXT]', "add or remove components matching the given text (may be used multiple times)") do |t|
+    o.on('--components [+|-][REGEX]', "add or remove components matching the given regex (may be used multiple times)") do |t|
       options[:components] << t
     end
 
-    o.on('--fixversions [+|-][TEXT]', "add or remove fixversions matching the given text (may be used multiple times)") do |t|
+    o.on('--fixversions [+|-][REGEX]', "add or remove fixversions matching the given regex (may be used multiple times)") do |t|
       options[:fixversions] << t
     end
 
-    o.separator "    NOTE: for TEXT starting with a '-' you must do '--flag=-TEXT', '--flag -TEXT' will not parse correctly"
+    o.separator "    NOTE: for REGEX starting with a '-' you must do '--flag=-TEXT', '--flag -TEXT' will not parse correctly"
 
     o.on('--commentText [TEXT]', "Text of the comment to add to the given issue") do |ct|
       options[:commentText] = ct
