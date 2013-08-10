@@ -192,6 +192,36 @@ module Atlassian
             end
           end
 
+          # If we are updating affectsversions, need to fetch the possibilities
+          if !edit_opts[:affectsversions].empty?
+            # create the container
+            json[:update][:versions] = []
+            affectsversions = json_get("rest/api/2/project/#{issue[:fields][:project][:key]}/versions")
+
+            # for each affectsversion, figure out if we are adding or removing and match to an ID
+            edit_opts[:affectsversions].each do |current_affectsversion|
+              operation = :add
+              current_affectsversion.gsub!(/^\+/, '')
+              if current_affectsversion.match(/^-/)
+                operation = :remove
+                current_affectsversion.gsub!(/^-/, '')
+              end
+
+              found = false
+              affectsversions.each do |f|
+                if f[:name].match(Regexp.new(current_affectsversion, Regexp::IGNORECASE))
+                  @log.debug("Matched affectsversion #{operation} => #{f[:name]} for regex #{current_affectsversion}")
+                  json[:update][:versions] << { operation => { :id => f[:id] } }
+                  found = true
+                  break
+                end
+              end
+              if !found
+                @log.error "Unable to find affectsversion for #{current_affectsversion}, ignoring!"
+              end
+            end
+          end
+
           if edit_opts[:assignee]
             # get the list of assignable people for this issue
             assignees = json_get("rest/api/2/user/assignable/search?issueKey=#{issue[:key]}&maxResults=2&username=#{URI.escape(edit_opts[:assignee])}")

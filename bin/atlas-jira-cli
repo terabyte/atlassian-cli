@@ -42,6 +42,7 @@ def parse_opts
     :priority => nil,
     :components => [],
     :fixversions => [],
+    :affectsversions => [],
   }
 
   if File.readable?(File.join(Dir.home, ATLAS_CLI_RC))
@@ -100,6 +101,10 @@ def parse_opts
 
     o.on('--fixversions [+|-][REGEX]', "add or remove fixversions matching the given regex (may be used multiple times)") do |t|
       options[:fixversions] << t
+    end
+
+    o.on('--affectsversions [+|-][REGEX]', "add or remove fixversions matching the given regex (may be used multiple times)") do |t|
+      options[:affectsversions] << t
     end
 
     o.separator "    NOTE: for REGEX starting with a '-' you must do '--flag=-TEXT', '--flag -TEXT' will not parse correctly"
@@ -270,6 +275,7 @@ begin
         :fields => options[:fields],
         :components => options[:components],
         :fixversions => options[:fixversions],
+        :affectsversions => options[:affectsversions],
         :assignee => options[:assignee],
         :priority =>options[:priority],
         :commentText => options[:commentText],
