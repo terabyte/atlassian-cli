@@ -19,6 +19,7 @@ module Atlassian
       :assignee => Proc.new {|issue| issue[:fields].andand[:assignee].andand[:name] },
       :reporter => Proc.new {|issue| issue[:fields].andand[:reporter].andand[:name] },
       :fixversions => Proc.new {|issue| issue[:fields].andand[:fixVersions].andand.collect {|x| x[:name] } },
+      :affectsversions => Proc.new {|issue| issue[:fields].andand[:versions].andand.collect {|x| x[:name] } },
       :components => Proc.new {|issue| issue[:fields].andand[:components].andand.collect {|x| x[:name] } },
       :default => Proc.new {|issue,colname| issue[:fields].andand[colname] || nil },
     }
@@ -26,26 +27,27 @@ module Atlassian
     # indicates the weight of each column for sorting.  I made these values up.
     # smaller number -> appears earlier
     COLUMN_SORTING_MAP = {
-      :id          => 10100,
-      :key         => 11000,
+      :id              => 10100,
+      :key             => 11000,
 
-      :priority    => 20100,
-      :status      => 20200,
-      :resolution  => 20300,
+      :priority        => 20100,
+      :status          => 20200,
+      :resolution      => 20300,
 
-      :reporter    => 21100,
-      :assignee    => 21200,
+      :reporter        => 21100,
+      :assignee        => 21200,
 
-      :created     => 22000,
-      :updated     => 22100,
+      :created         => 22000,
+      :updated         => 22100,
 
-      :components  => 25100,
-      :fixversions => 25200,
+      :components      => 25100,
+      :fixversions     => 25200,
+      :affectsversions => 25300,
 
-      :summary     => 30000,
-      :description => 30100,
+      :summary         => 30000,
+      :description     => 30100,
 
-      :url         => 80100,
+      :url             => 80100,
     }
 
     COLUMN_FORMATTING_MAP = {
