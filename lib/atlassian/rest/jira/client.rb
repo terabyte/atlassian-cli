@@ -91,23 +91,119 @@ module Atlassian
         end
 
         # https://developer.atlassian.com/display/JIRADEV/Updating+an+Issue+via+the+JIRA+REST+APIs suggests to use the /editmeta endpoint.  IT LIES.
-        def issue_update(issue, fields, comment_text = nil)
+        def issue_update(issue, edit_opts = {})
 
           json = {
             :update => {}
           }
 
-          fields.keys.each do |f|
-            json[:update][f] = [ { :set => fields[f] } ]
+          edit_opts[:fields].keys.each do |f|
+            json[:update][f] = [ { :set => edit_opts[:fields][f] } ]
           end
 
-          if comment_text
+          if edit_opts[:commentText]
             json[:update][:comment] = [ {
               :add => {
-                :body => comment_text
+                :body => edit_opts[:commentText]
               }
             } ]
           end
+
+          # If we are updating priority, need to fetch its ID
+          if edit_opts[:priority]
+            priorities = json_get("rest/api/2/priority")
+            priority_name = nil
+            priority_id = nil
+            priorities.each do |p|
+              if p[:name].match(Regexp.new(edit_opts[:priority], Regexp::IGNORECASE))
+                @log.debug("Matched priority name #{p[:name]}")
+                priority_name = p[:name]
+                priority_id = p[:id]
+                break
+              end
+            end
+            if priority_name.nil?
+              @log.error "Unable to find priority for #{edit_opts[:priority]}, ignoring!"
+            else
+              json[:update][:priority] = [ { :set => {:id => priority_id} } ]
+            end
+          end
+
+          # If we are updating components, need to fetch the possibilities
+          if !edit_opts[:components].empty?
+            # create the container
+            json[:update][:components] = []
+            components = json_get("rest/api/2/project/#{issue[:fields][:project][:key]}/components")
+
+            # for each component, figure out if we are adding or removing and match to an ID
+            edit_opts[:components].each do |current_component|
+              operation = :add
+              current_component.gsub!(/^\+/, '')
+              if current_component.match(/^-/)
+                operation = :remove
+                current_component.gsub!(/^-/, '')
+              end
+
+              found = false
+              components.each do |c|
+                if c[:name].match(Regexp.new(current_component, Regexp::IGNORECASE))
+                  @log.debug("Matched component #{operation} => #{c[:name]} for regex #{current_component}")
+                  json[:update][:components] << { operation => { :id => c[:id] } }
+                  found = true
+                  break
+                end
+              end
+              if !found
+                @log.error "Unable to find component for #{current_component}, ignoring!"
+              end
+            end
+          end
+
+          # If we are updating fixversions, need to fetch the possibilities
+          if !edit_opts[:fixversions].empty?
+            # create the container
+            # ARGH!  the key "fixVersions" isn't listed in the editmeta API
+            # call output...but it works (as of jira 5.2.11 anyways).  and YES,
+            # it is case senstiive.  awesome.
+            json[:update][:fixVersions] = []
+            fixversions = json_get("rest/api/2/project/#{issue[:fields][:project][:key]}/versions")
+
+            # for each fixversion, figure out if we are adding or removing and match to an ID
+            edit_opts[:fixversions].each do |current_fixversion|
+              operation = :add
+              current_fixversion.gsub!(/^\+/, '')
+              if current_fixversion.match(/^-/)
+                operation = :remove
+                current_fixversion.gsub!(/^-/, '')
+              end
+
+              found = false
+              fixversions.each do |f|
+                if f[:name].match(Regexp.new(current_fixversion, Regexp::IGNORECASE))
+                  @log.debug("Matched fixversion #{operation} => #{f[:name]} for regex #{current_fixversion}")
+                  json[:update][:fixVersions] << { operation => { :id => f[:id] } }
+                  found = true
+                  break
+                end
+              end
+              if !found
+                @log.error "Unable to find fixversion for #{current_fixversion}, ignoring!"
+              end
+            end
+          end
+
+          if edit_opts[:assignee]
+            # get the list of assignable people for this issue
+            assignees = json_get("rest/api/2/user/assignable/search?issueKey=#{issue[:key]}&maxResults=2&username=#{URI.escape(edit_opts[:assignee])}")
+
+            if (assignees.size != 1)
+              @log.error "Unable to find UNIQUE assignee for #{edit_opts[:assignee]}, ignoring (try a larger substring, check spelling?)"
+              @log.error "Candidates: " + assignees.map {|x| x[:name] }.join(", ")
+            else
+              json[:update][:assignee] = [{ :set => { :name => assignees.first[:name] } } ]
+            end
+          end
+
           response = json_put("rest/api/2/issue/#{issue[:key]}", json)
           @log.info "Successfully updated issue #{issue[:key]}"
           response

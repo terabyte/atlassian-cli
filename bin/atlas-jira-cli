@@ -38,6 +38,10 @@ def parse_opts
     :debug => nil,
     :cacert => nil,
     :fields => {},
+    :assignee => nil,
+    :priority => nil,
+    :components => [],
+    :fixversions => [],
   }
 
   if File.readable?(File.join(Dir.home, ATLAS_CLI_RC))
@@ -81,6 +85,24 @@ def parse_opts
     o.separator ""
     o.separator "Edit Options: (some of these are applicable to other commands like transition, create, etc)"
     o.separator ""
+
+    o.on('--assignee [TEXT]', "Assign to user matching the given text") do |t|
+      options[:assignee] = t
+    end
+
+    o.on('--priority [TEXT]', "Change to the priority matching the given text") do |t|
+      options[:priority] = t
+    end
+
+    o.on('--components [+|-][TEXT]', "add or remove components matching the given text (may be used multiple times)") do |t|
+      options[:components] << t
+    end
+
+    o.on('--fixversions [+|-][TEXT]', "add or remove fixversions matching the given text (may be used multiple times)") do |t|
+      options[:fixversions] << t
+    end
+
+    o.separator "    NOTE: for TEXT starting with a '-' you must do '--flag=-TEXT', '--flag -TEXT' will not parse correctly"
 
     o.on('--commentText [TEXT]', "Text of the comment to add to the given issue") do |ct|
       options[:commentText] = ct
@@ -244,7 +266,16 @@ begin
 
     when :edit
       issue = get_issue_from_key_or_id(options, client, options[:key_or_id])
-      response = client.issue_update(issue, options[:fields], options[:commentText])
+      edit_opts = {
+        :fields => options[:fields],
+        :components => options[:components],
+        :fixversions => options[:fixversions],
+        :assignee => options[:assignee],
+        :priority =>options[:priority],
+        :commentText => options[:commentText],
+      }
+
+      response = client.issue_update(issue, edit_opts)
       if options[:debug]
         ap response
       end

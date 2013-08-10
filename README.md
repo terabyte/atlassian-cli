@@ -36,9 +36,6 @@ broken up by product.
 
 ## JIRA
 * Create issues
-* Change priority
-* Change Components
-* Change fixversions
 * JQL Query Pagination
 * Attach files
 
