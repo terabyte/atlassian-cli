@@ -18,7 +18,8 @@ module Atlassian
       :summary => Proc.new {|issue| issue[:fields].andand[:summary] },
       :assignee => Proc.new {|issue| issue[:fields].andand[:assignee].andand[:name] },
       :reporter => Proc.new {|issue| issue[:fields].andand[:reporter].andand[:name] },
-      :fixversions => Proc.new {|issue| issue[:fields].andand[:fixversions].andand.collect {|x| x[:name] } },
+      :fixversions => Proc.new {|issue| issue[:fields].andand[:fixVersions].andand.collect {|x| x[:name] } },
+      :affectsversions => Proc.new {|issue| issue[:fields].andand[:versions].andand.collect {|x| x[:name] } },
       :components => Proc.new {|issue| issue[:fields].andand[:components].andand.collect {|x| x[:name] } },
       :default => Proc.new {|issue,colname| issue[:fields].andand[colname] || nil },
     }
@@ -26,41 +27,47 @@ module Atlassian
     # indicates the weight of each column for sorting.  I made these values up.
     # smaller number -> appears earlier
     COLUMN_SORTING_MAP = {
-      :id          => 10100,
-      :key         => 11000,
+      :id              => 10100,
+      :key             => 11000,
 
-      :priority    => 20100,
-      :status      => 20200,
-      :resolution  => 20300,
+      :priority        => 20100,
+      :status          => 20200,
+      :resolution      => 20300,
 
-      :reporter    => 21100,
-      :assignee    => 21200,
+      :reporter        => 21100,
+      :assignee        => 21200,
 
-      :created     => 22000,
-      :updated     => 22100,
+      :created         => 22000,
+      :updated         => 22100,
 
-      :components  => 25100,
-      :fixversions => 25200,
+      :components      => 25100,
+      :fixversions     => 25200,
+      :affectsversions => 25300,
 
-      :summary     => 30000,
-      :description => 30100,
+      :summary         => 30000,
+      :description     => 30100,
 
-      :url         => 80100,
+      :url             => 80100,
     }
 
     COLUMN_FORMATTING_MAP = {
       :id => Proc.new {|f,str| str.to_s.green },
       :key => Proc.new {|f,str| str.to_s.green },
-      :name => Proc.new {|f,str| str.to_s.green },
-      :displayName => Proc.new {|f,str| str.to_s.yellow },
+      :name => Proc.new {|f,str| str.to_s.greenish },
+      :reporter => Proc.new {|f,str| str.to_s.greenish },
+      :assignee => Proc.new {|f,str| str.to_s.greenish },
+      :displayName => Proc.new {|f,str| str.to_s.yellowish },
       :default => Proc.new {|f,str| str.to_s },
       :priority => Proc.new {|f,str| str.to_s.red },
       :status => Proc.new {|f,str| str.to_s.red },
       :summary => Proc.new {|f,str| f.shorten(str.to_s) },
       :description => Proc.new {|f,str| f.shorten(str.to_s) },
       :body => Proc.new {|f,str| f.shorten(str.to_s) },
-      :created => Proc.new {|f, str| Time.parse(str).localtime.strftime("%c") },
-      :updated => Proc.new {|f, str| Time.parse(str).localtime.strftime("%c") },
+      :created => Proc.new {|f, str| Time.parse(str).localtime.strftime("%c").gray },
+      :updated => Proc.new {|f, str| Time.parse(str).localtime.strftime("%c").gray },
+      :fixversions => Proc.new {|f,arr| (arr.nil? || arr.empty?) ? '' : ("'" + arr.join("', '") + "'").cyan },
+      :affectsversions => Proc.new {|f,arr| (arr.nil? || arr.empty?) ? '' : ("'" + arr.join("', '") + "'").cyan },
+      :components => Proc.new {|f,arr| (arr.nil? || arr.empty?) ? '' : ("'" + arr.join("', '") + "'").yellowish },
     }
 
     # this class turns a json object returned by the rest service into a flat hash of column-to-value mappings
