@@ -9,13 +9,13 @@ candidate for using with the atlas-cli.
 
 # Usage
 
-TODO
+# using rvm...
+rvm use ruby-2.0.0@atlascli --create
+bundle install
+bundle exec bin/atlas-jira-cli <args>
 
 # Authentication
 
-TODO
-
-# setting up ssh-agent
 TODO
 
 # DEV GUIDE
@@ -35,7 +35,6 @@ There are many things I'd eventually like to implement.  For now, they are
 broken up by product.
 
 ## JIRA
-* Create issues
 * JQL Query Pagination
 * Attach files
 
