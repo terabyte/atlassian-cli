@@ -1,0 +1,39 @@
+# example project create meta style
+        [30] {
+                  :self => "https://jira.example.com/rest/api/2/project/ITOOLS",
+                    :id => "10150",
+                   :key => "ITOOLS",
+                  :name => "Internal Tools",
+            :avatarUrls => {
+                :"16x16" => "https://jira.example.com/secure/projectavatar?size=small&pid=10150&avatarId=10000",
+                :"48x48" => "https://jira.example.com/secure/projectavatar?pid=10150&avatarId=10000"
+            },
+            :issuetypes => [
+                [0] {
+                           :self => "https://jira.example.com/rest/api/2/issuetype/3",
+                             :id => "3",
+                    :description => "A task that needs to be done.",
+                        :iconUrl => "https://jira.example.com/images/icons/issuetypes/task.png",
+                           :name => "Task",
+                        :subtask => false
+                },
+                [1] {
+                           :self => "https://jira.example.com/rest/api/2/issuetype/5",
+                             :id => "5",
+                    :description => "The sub-task of the issue",
+                        :iconUrl => "https://jira.example.com/images/icons/issuetypes/subtask_alternate.png",
+                           :name => "Sub-task",
+                        :subtask => true
+                },
+                [2] {
+                           :self => "https://jira.example.com/rest/api/2/issuetype/39",
+                             :id => "39",
+                    :description => "",
+                        :iconUrl => "https://jira.example.com/images/icons/issuetypes/newfeature.png",
+                           :name => "Project",
+                        :subtask => false
+                }
+            ]
+        },
+ 
+

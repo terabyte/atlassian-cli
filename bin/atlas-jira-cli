@@ -27,6 +27,7 @@ VALID_COMMANDS = {
   :transition => "Transition an issue by ID or key (supplied as a bare argument)",
   :view => "View an issue by ID or key (supplied as a bare argument)",
   :edit => "Edit fields of an existing issue (supplied as a bare argument",
+  :create => "Create an issue",
 }
 
 def parse_opts
@@ -43,6 +44,8 @@ def parse_opts
     :components => [],
     :fixversions => [],
     :affectsversions => [],
+    :issuetype => nil,
+    :projectkey => nil,
   }
 
   if File.readable?(File.join(Dir.home, ATLAS_CLI_RC))
@@ -84,8 +87,29 @@ def parse_opts
     end
 
     o.separator ""
-    o.separator "Edit Options: (some of these are applicable to other commands like transition, create, etc)"
+    o.separator "Create Options:"
     o.separator ""
+
+    # todo: support editing issue type?
+    o.on('--issueType [REGEX]', "Text matching the name/description of the issue type to create (if not given, lowest ID is used)") do |ct|
+      options[:issuetype] = ct
+    end
+
+    o.on('--projectKey [KEY]', "Key of the project to create the issue in") do |ct|
+      options[:projectkey] = ct
+    end
+
+    o.separator ""
+    o.separator "Create/Edit Options: (projectKey, issueType, and summary are REQUIRED)"
+    o.separator ""
+
+    o.on('--summary [TEXT]', "Shorthand for --field summary,\"TEXT\"") do |t|
+      options[:fields][:summary] = t
+    end
+
+    o.on('--description [TEXT]', "Shorthand for --field description,\"TEXT\"") do |t|
+      options[:fields][:description] = t
+    end
 
     o.on('--assignee [REGEX]', "Assign to user matching the given regex") do |t|
       options[:assignee] = t
@@ -95,21 +119,21 @@ def parse_opts
       options[:priority] = t
     end
 
-    o.on('--components [+|-][REGEX]', "add or remove components matching the given regex (may be used multiple times)") do |t|
+    o.on('--components [+|-][REGEX]', "Add or remove components matching the given regex (may be used multiple times)") do |t|
       options[:components] << t
     end
 
-    o.on('--fixversions [+|-][REGEX]', "add or remove fixversions matching the given regex (may be used multiple times)") do |t|
+    o.on('--fixversions [+|-][REGEX]', "Add or remove fixversions matching the given regex (may be used multiple times)") do |t|
       options[:fixversions] << t
     end
 
-    o.on('--affectsversions [+|-][REGEX]', "add or remove fixversions matching the given regex (may be used multiple times)") do |t|
+    o.on('--affectsversions [+|-][REGEX]', "Add or remove fixversions matching the given regex (may be used multiple times)") do |t|
       options[:affectsversions] << t
     end
 
     o.separator "    NOTE: for REGEX starting with a '-' you must do '--flag=-TEXT', '--flag -TEXT' will not parse correctly"
 
-    o.on('--commentText [TEXT]', "Text of the comment to add to the given issue") do |ct|
+    o.on('--commentText [TEXT]', "Text of the comment to add to the issue") do |ct|
       options[:commentText] = ct
     end
 
@@ -176,7 +200,6 @@ def parse_opts
   options[:command] = command
   case options[:command]
   when :jql
-    # TODO: validate args
     unless options[:jql] = ARGV.shift
       puts optparse
       exit 1
@@ -188,6 +211,11 @@ def parse_opts
     end
   when :comment
     unless (options[:key_or_id] = ARGV.shift) && options[:commentText]
+      puts optparse
+      exit 1
+    end
+  when :create
+    unless options[:projectkey] && options[:issuetype] && options[:fields][:summary]
       puts optparse
       exit 1
     end
@@ -282,6 +310,23 @@ begin
       }
 
       response = client.issue_update(issue, edit_opts)
+      if options[:debug]
+        ap response
+      end
+
+    when :create
+      create_opts = {
+        :fields => options[:fields],
+        :components => options[:components],
+        :fixversions => options[:fixversions],
+        :affectsversions => options[:affectsversions],
+        :assignee => options[:assignee],
+        :priority =>options[:priority],
+        :projectkey => options[:projectkey],
+        :issuetype => options[:issuetype],
+      }
+
+      response = client.issue_create(create_opts)
       if options[:debug]
         ap response
       end

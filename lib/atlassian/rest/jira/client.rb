@@ -238,6 +238,177 @@ module Atlassian
           @log.info "Successfully updated issue #{issue[:key]}"
           response
         end
+
+        def issue_create(opts)
+          @log.debug "Creating issue with arguments #{opts}"
+
+          json = {
+            :fields => opts[:fields],
+          }
+
+          # DEVS: use this to get the create meta for all projects
+          #createmeta = json_get("rest/api/2/issue/createmeta")
+          #ap createmeta
+          #exit 1
+
+          # TODO: allow regex here to find a project by name?
+          # seems unnecessary, keys are short and generally known.
+          json[:fields][:project] = { :key => opts[:projectkey] }
+
+          # We need to determine an issue type.  I thought there was such a
+          # thing as default issue type but I don't see that here, so we will
+          # use the type with the lowest ID that isn't a subissue type unless a
+          # regex is provided.  People could add a default type to their RC file.
+          createmeta = json_get("rest/api/2/issue/createmeta?projectKeys=#{opts[:projectkey]}")
+          #ap createmeta
+          #exit 1
+
+          if createmeta[:projects].empty?
+            raise Atlassian::IllegalArgumentError.new("No projects found for key #{opts[:projectkey]}")
+          end
+
+          found_issue_type = nil
+          match = false
+          createmeta[:projects].first[:issuetypes].each do |type|
+            next if type[:subtask]
+
+            @log.debug "Found issuetype: #{type[:name]}"
+            if found_issue_type.nil? || (found_issue_type && found_issue_type[:id] > type[:id])
+              found_issue_type = type
+            end
+
+            if type[:name].match(Regexp.new(opts[:issuetype], Regexp::IGNORECASE))
+              found_issue_type = type
+              match = true
+              break
+            end
+          end
+
+          json[:fields][:issuetype] = { :id => found_issue_type[:id] }
+          if match
+            @log.debug("Matched issue type #{found_issue_type[:name]} with regex #{opts[:issuetype]}")
+          else
+            @log.debug("Using default issue type #{found_issue_type[:name]} regex #{opts[:issuetype]}")
+          end
+
+          # If provided we need to set the priority, otherwise we can leave it out
+          if opts[:priority]
+            priorities = json_get("rest/api/2/priority")
+            priority_name = nil
+            priority_id = nil
+            priorities.each do |p|
+              if p[:name].match(Regexp.new(opts[:priority], Regexp::IGNORECASE))
+                @log.debug("Matched priority name #{p[:name]}")
+                priority_name = p[:name]
+                priority_id = p[:id]
+                break
+              end
+            end
+            if priority_name.nil?
+              @log.error "Unable to find priority for #{opts[:priority]}, ignoring!"
+            else
+              json[:fields][:priority] = { :id => priority_id}
+            end
+          end
+
+          # If we are settings components, need to fetch the possibilities
+          if opts[:components] && !opts[:components].empty?
+            # create the container
+            json[:fields][:components] = []
+            components = json_get("rest/api/2/project/#{opts[:projectkey]}/components")
+
+            # for each component, figure out if we are adding or removing and match to an ID
+            opts[:components].each do |current_component|
+              json[:fields][:components] = []
+              # doesn't make sense to remove component from new issue, always add
+              current_component.gsub!(/^\+/, '')
+              current_component.gsub!(/^-/, '')
+
+              found = false
+              components.each do |c|
+                if c[:name].match(Regexp.new(current_component, Regexp::IGNORECASE))
+                  @log.debug("Matched component #{c[:name]} for regex #{current_component}")
+                  json[:fields][:components] << { :id => c[:id] }
+                  found = true
+                  break
+                end
+              end
+              if !found
+                @log.error "Unable to find component for #{current_component}, ignoring!"
+              end
+            end
+          end
+
+          # If we are setting fixversions, need to fetch the possibilities
+          if opts[:fixversions] && !opts[:fixversions].empty?
+            json[:fields][:fixVersions] = []
+            fixversions = json_get("rest/api/2/project/#{opts[:projectkey]}/versions")
+
+            opts[:fixversions].each do |current_fixversion|
+              current_fixversion.gsub!(/^\+/, '')
+              current_fixversion.gsub!(/^-/, '')
+
+              found = false
+              fixversions.each do |f|
+                if f[:name].match(Regexp.new(current_fixversion, Regexp::IGNORECASE))
+                  @log.debug("Matched fixversion #{f[:name]} for regex #{current_fixversion}")
+                  json[:fields][:fixVersions] << { :id => f[:id] }
+                  found = true
+                  break
+                end
+              end
+              if !found
+                @log.error "Unable to find fixversion for #{current_fixversion}, ignoring!"
+              end
+            end
+          end
+
+          # If we are setting affectsversions, need to fetch the possibilities
+          # TODO: why doesn't this work?
+          if false && opts[:affectsversions] && !opts[:affectsversions].empty?
+            json[:fields][:affectsVersions] = []
+            # TODO: only call this once?  Also, fix the issue_update method the same way
+            affectsversions = json_get("rest/api/2/project/#{opts[:projectkey]}/versions")
+
+            opts[:affectsversions].each do |current_affectsversion|
+              current_affectsversion.gsub!(/^\+/, '')
+              current_affectsversion.gsub!(/^-/, '')
+
+              found = false
+              affectsversions.each do |f|
+                if f[:name].match(Regexp.new(current_affectsversion, Regexp::IGNORECASE))
+                  @log.debug("Matched affectsversion #{f[:name]} for regex #{current_affectsversion}")
+                  json[:fields][:affectsVersions] << { :id => f[:id] }
+                  found = true
+                  break
+                end
+              end
+              if !found
+                @log.error "Unable to find affectsversion for #{current_affectsversion}, ignoring!"
+              end
+            end
+          end
+
+          if opts[:assignee]
+            # get the list of assignable people for this issue
+            assignees = json_get("rest/api/2/user/assignable/search?issueKey=#{issue[:key]}&maxResults=2&username=#{URI.escape(edit_opts[:assignee])}")
+
+            if (assignees.size != 1)
+              @log.error "Unable to find UNIQUE assignee for #{edit_opts[:assignee]}, ignoring (try a larger substring, check spelling?)"
+              @log.error "Candidates: " + assignees.map {|x| x[:name] }.join(", ")
+            else
+              json[:fields][:assignee] = { :name => assignees.first[:name] }
+            end
+          end
+
+          response = json_post("rest/api/2/issue", json)
+          if response[:key]
+            @log.info "Successfully created issue #{response[:key]}"
+          else
+            @log.error "Unable to create issue"
+          end
+          response
+        end
       end
     end
   end
