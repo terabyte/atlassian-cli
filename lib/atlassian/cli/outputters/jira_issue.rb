@@ -53,6 +53,10 @@ module Atlassian
         def display_issues_table(issues)
 
           table = Terminal::Table.new do |t|
+            if @set_width
+              width, height = HighLine::SystemExtensions.terminal_size
+              t.style = {:width => width}
+            end
             sorted_cols = @formatter.sort_cols(@display_columns)
             header = []
             sorted_cols.each do |col|
