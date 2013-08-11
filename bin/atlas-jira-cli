@@ -47,6 +47,12 @@ def parse_opts
     :affectsversions => [],
     :issuetype => nil,
     :projectkey => nil,
+    :outputter_opts => {},
+    # to disable column wrapping, change this to
+    # :outputter_opts => { :set_width => false },
+    # This may be needed to work around a missing feature in terminal-table gem
+    # For details, see: https://github.com/terabyte/terminal-table/commit/68815ba7b609478d0b865fffe49987f60a571342
+    # The master branch of terabyte's fork of terminal-table gem should always work.
   }
 
   if File.readable?(File.join(Dir.home, ATLAS_CLI_RC))
@@ -60,7 +66,7 @@ def parse_opts
     options.update(JSON.parse(rc_str).deep_symbolize_keys)
   end
 
-  options[:outputter] = Atlassian::Cli::Outputters::JiraIssue.new()
+  options[:outputter] = Atlassian::Cli::Outputters::JiraIssue.new(options[:outputter_opts])
   options[:logger] = Logger.new('atlas-jira-cli')
   options[:logger].outputters = Outputter.stdout
   options[:logger].level = Log4r::INFO

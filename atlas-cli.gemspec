@@ -24,5 +24,6 @@ Gem::Specification.new do |s|
   s.add_dependency('httpclient')
   s.add_dependency('json')
   s.add_dependency('log4r')
-  s.add_dependency('terminal-table')
+  # TODO: when we are again able to depend upon the real gem, add this back in:
+  # s.add_dependency('terminal-table')
 end

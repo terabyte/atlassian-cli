@@ -13,9 +13,15 @@ module Atlassian
 
         attr_accessor :display_columns
         attr_accessor :formatter
+        attr_accessor :set_width
 
         def initialize(options = {})
           @display_columns = DEFAULT_COLUMNS
+
+          if options[:set_width].nil?
+            options[:set_width] = true
+          end
+          @set_width = options[:set_width]
 
           if options[:color].nil?
             options[:color] = true
@@ -26,9 +32,10 @@ module Atlassian
         def display_issue_table(issue, comments = [])
           issue_map = @formatter.get_issue_map(issue)
           table = Terminal::Table.new do |t|
-            width, height = HighLine::SystemExtensions.terminal_size
-            # XXX TODO: bug in the gem prevents this currently
-            #t.style = {:width => width}
+            if @set_width
+              width, height = HighLine::SystemExtensions.terminal_size
+              t.style = {:width => width}
+            end
 
             @formatter.sort_cols(issue_map.keys).each do |col|
               t << [{:value => header(col), :alignment => :right}, @formatter.format_text_by_column(col, issue_map[col])]
