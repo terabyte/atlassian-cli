@@ -28,6 +28,7 @@ VALID_COMMANDS = {
   :view => "View an issue by ID or key (supplied as a bare argument)",
   :edit => "Edit fields of an existing issue (supplied as a bare argument",
   :create => "Create an issue",
+  :delete => "Delete an issue (issue key supplied as a bare argument)",
 }
 
 def parse_opts
@@ -204,7 +205,7 @@ def parse_opts
       puts optparse
       exit 1
     end
-  when :view, :transition, :edit
+  when :view, :transition, :edit, :delete
     unless options[:key_or_id] = ARGV.shift
       puts optparse
       exit 1
@@ -327,6 +328,12 @@ begin
       }
 
       response = client.issue_create(create_opts)
+      if options[:debug]
+        ap response
+      end
+
+    when :delete
+      response = client.issue_delete(get_issue_from_key_or_id(options, client, options[:key_or_id])[:key])
       if options[:debug]
         ap response
       end

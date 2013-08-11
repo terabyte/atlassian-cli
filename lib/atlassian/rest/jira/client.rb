@@ -409,6 +409,14 @@ module Atlassian
           end
           response
         end
+
+        def issue_delete(key)
+          @log.debug "Deleting issue #{key}"
+
+          response = json_delete("rest/api/2/issue/#{key}")
+          @log.info "Successfully deleted issue #{key}"
+          response
+        end
       end
     end
   end
