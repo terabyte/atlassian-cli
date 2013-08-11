@@ -137,6 +137,13 @@ module Atlassian
         return response
       end
 
+      def raw_delete(url, data = nil, headers = {})
+        @log.debug "Performing DELETE on url #{url}"
+        @log.debug "DATA: #{data}"
+        response = @raw_http_client.delete(url, data, @extra_headers.merge(headers))
+        return response
+      end
+
       def raw_put(url, data = nil, headers = {})
         @log.debug "Performing PUT on url #{url}"
         @log.debug "DATA: #{data}"
@@ -166,7 +173,12 @@ module Atlassian
 
         status = response.status.to_i
         if status >= 200 && status < 300
-          parsed = JSON.parse(response.content).deep_symbolize_keys
+          if response.content.size > 1
+            parsed = JSON.parse(response.content).deep_symbolize_keys
+          else
+            # empty means empty - jira does this =(
+            parsed = {}
+          end
           return parsed
         end
 
@@ -230,6 +242,42 @@ module Atlassian
         @log.debug "JSON PUT: " + parameters.to_json
 
         response = raw_put(uri, parameters.to_json, headers)
+
+        status = response.status.to_i
+        if status >= 200 && status < 300
+          if response.content.size > 1
+            parsed = JSON.parse(response.content).deep_symbolize_keys
+          else
+            # empty means empty - jira does this =(
+            parsed = {}
+          end
+          return parsed
+        end
+
+        # some sort of error may have happened, or it could just be a 404 or something.
+        begin
+          parsed = JSON.parse(response.content).deep_symbolize_keys
+          if status < 500
+            raise HttpClientError.new(status, parsed, response.reason)
+          else
+            raise HttpServerError.new(status, parsed, response.reason)
+          end
+        rescue Exception => e
+          raise e if e.is_a?(HttpBaseStatus)
+          raise HttpServerError.new(status, response.content, response.reason)
+        end
+      end
+
+      def json_delete(path, parameters = {}, headers = {})
+        if !headers['Content-Type']
+          headers['Content-Type'] = 'application/json'
+        end
+
+        uri = @endpoint + path
+
+        @log.debug "JSON DELETE: " + parameters.to_s
+
+        response = raw_delete(uri, parameters, headers)
 
         status = response.status.to_i
         if status >= 200 && status < 300
