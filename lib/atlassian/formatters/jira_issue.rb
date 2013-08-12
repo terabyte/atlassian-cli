@@ -60,9 +60,9 @@ module Atlassian
       :default => Proc.new {|f,str| str.to_s },
       :priority => Proc.new {|f,str| str.to_s.red },
       :status => Proc.new {|f,str| str.to_s.red },
-      :summary => Proc.new {|f,str| f.shorten(str.to_s) },
-      :description => Proc.new {|f,str| f.shorten(str.to_s) },
-      :body => Proc.new {|f,str| f.shorten(str.to_s) },
+      :summary => Proc.new {|f,str| f.whitespace_fixup(str.to_s) },
+      :description => Proc.new {|f,str| f.whitespace_fixup(str.to_s) },
+      :body => Proc.new {|f,str| f.whitespace_fixup(str.to_s) },
       :created => Proc.new {|f, str| Time.parse(str).localtime.strftime("%c").white },
       :updated => Proc.new {|f, str| Time.parse(str).localtime.strftime("%c").white },
       :fixversions => Proc.new {|f,arr| (arr.nil? || arr.empty?) ? '' : ("'" + arr.join("', '") + "'").cyan },
@@ -117,10 +117,9 @@ module Atlassian
         end
       end
 
-      # try to cut out crazy whitespace / or other weird characters in
-      # free-form text input fields where people often paste-spew
-      def shorten(text)
-        text.andand.gsub(/\s{3,}/, " ").andand.gsub(/\r/, "")
+      # '\r" ends up embedded in places due to windows copy/paste and messes up everything.
+      def whitespace_fixup(text)
+        text.andand.gsub(/\r/, "")
       end
 
     end
