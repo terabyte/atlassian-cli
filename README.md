@@ -38,7 +38,10 @@ To set this up, it is advised you do the following:
     # your rvm directory and your checkout of atlassian-cli
 
     #!/bin/bash
-    /home/cmyers/.rvm/bin/ruby-2.0.0-p195@atlascli -S bundle exec /home/cmyers/gitrepos/atlassian-cli/bin/atlas-jira-cli "$@"
+    ATLAS_CLI_DIR=/home/cmyers/gitrepos/atlassian-cli
+    RVM_DIR=/home/cmyers/.rvm
+    GEMSET=ruby-2.0.0-p195@atlascli
+    cd $ATLAS_CLI_DIR && $RVM_DIR/bin/$GEMSET -S bundle exec $ATLAS_CLI_DIR/bin/atlas-jira-cli "$@"
 
 # Authentication
 
