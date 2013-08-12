@@ -103,7 +103,8 @@ def parse_opts
     end
 
     o.on('--projectKey [KEY]', "Key of the project to create the issue in") do |ct|
-      options[:projectkey] = ct
+      # keys are always all-caps and SOME (but not all) rest endpoints are case senstiive.
+      options[:projectkey] = ct.upcase
     end
 
     o.separator ""
