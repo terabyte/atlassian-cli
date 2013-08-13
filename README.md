@@ -68,6 +68,9 @@ broken up by product.
 ## JIRA
 * JQL Query Pagination
 * Attach files
+* Close as a dupe (ability to set resolution), maybe issue linking
+* Allow specifying which columns shown in "view" and "jql", including "all"
+* allow "view" to show multiple issues with jql.
 
 ## Confluence
 * Fetch raw page, upload raw page
