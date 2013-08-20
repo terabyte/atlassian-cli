@@ -13,7 +13,7 @@ candidate for using with the atlas-cli.
 
     atlas-jira-cli --help # for full help page
 
-    atlas-jira-cli jql "assignee = cmyers and project = QA and created > -1d"
+    atlas-jira-cli jql "assignee = someuser and project = QA and created > -1d"
     atlas-jira-cli view QA-1234
     atlas-jira-cli transition QA-1234 --editState close
     atlas-jira-cli edit QA-1234 --fixversion='+1.1.1' --fixversion='-1.1.0' --commentText "bumping to a later release"
@@ -38,8 +38,8 @@ To set this up, it is advised you do the following:
     # your rvm directory and your checkout of atlassian-cli
 
     #!/bin/bash
-    ATLAS_CLI_DIR=/home/cmyers/gitrepos/atlassian-cli
-    RVM_DIR=/home/cmyers/.rvm
+    ATLAS_CLI_DIR=/home/$USER/gitrepos/atlassian-cli
+    RVM_DIR=/home/$USER/.rvm
     GEMSET=ruby-2.0.0-p195@atlascli
     cd $ATLAS_CLI_DIR && $RVM_DIR/bin/$GEMSET -S bundle exec $ATLAS_CLI_DIR/bin/atlas-jira-cli "$@"
 
@@ -83,6 +83,7 @@ broken up by product.
 * Permissions admin?
 
 ## Generic
+* Raw JSON output
 * Support using a session cookie to cache credentials (p0, otherwise the CLI puts undue load on crowd/ldap)
 * TEST COVERAGE
 * Implement oauth support?
