@@ -330,6 +330,7 @@ begin
         :assignee => options[:assignee],
         :priority =>options[:priority],
         :commentText => options[:commentText],
+        :issuetype => options[:issuetype],
       }
 
       response = client.issue_update(issue, edit_opts)
