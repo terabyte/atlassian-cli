@@ -42,7 +42,7 @@ module Atlassian
         # https://answers.atlassian.com/questions/171351/how-to-change-the-status-of-an-issue-via-rest-api
         # and https://docs.atlassian.com/jira/REST/latest/#idp1368336
         # and a lot of perserverence =|
-        def post_transition(issue, new_state, comment_text = nil)
+        def post_transition(issue, new_state, comment_text = nil, resolution_name = nil)
           # get list of possible states
           @log.debug "Searching for available transitions for issue #{issue[:key]}"
           response = json_get("rest/api/2/issue/#{issue[:key]}/transitions?expand=transitions,fields")
@@ -84,6 +84,14 @@ module Atlassian
                   :body => comment_text
                 }
               } ]
+            }
+          end
+
+          if resolution_name
+            json[:fields] = {
+              :resolution => {
+                :name => resolution_name
+              }
             }
           end
           response = json_post("rest/api/2/issue/#{issue[:key]}/transitions?expand=transitions,fields", json)

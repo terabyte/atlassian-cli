@@ -160,6 +160,11 @@ def parse_opts
       options[:editState] = state
     end
 
+    # TODO: enable partial matching of these, like how we do --editState?
+    o.on('--resolution [resolution name]', "Resolution to use (defaults to Fixed, other options include 'Duplicate' and 'Won't Fix', etc)") do |state|
+      options[:resolution] = state
+    end
+
     o.separator ""
     o.separator "View / Jql Options:"
     o.separator ""
@@ -315,7 +320,7 @@ begin
 
     when :transition
       issue = get_issue_from_key_or_id(options, client, options[:key_or_id])
-      response = client.post_transition(issue, options[:editState], options[:commentText])
+      response = client.post_transition(issue, options[:editState], options[:commentText], options[:resolution])
       if options[:debug]
         ap response
       end
