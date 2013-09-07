@@ -18,6 +18,7 @@ module Atlassian
       :summary => Proc.new {|issue| issue[:fields].andand[:summary] },
       :assignee => Proc.new {|issue| issue[:fields].andand[:assignee].andand[:name] },
       :reporter => Proc.new {|issue| issue[:fields].andand[:reporter].andand[:name] },
+      :resolution => Proc.new {|issue| issue[:fields].andand[:resolution].andand[:name] || "<none>" },
       :fixversions => Proc.new {|issue| issue[:fields].andand[:fixVersions].andand.collect {|x| x[:name] } },
       :affectsversions => Proc.new {|issue| issue[:fields].andand[:versions].andand.collect {|x| x[:name] } },
       :components => Proc.new {|issue| issue[:fields].andand[:components].andand.collect {|x| x[:name] } },
@@ -68,6 +69,7 @@ module Atlassian
       :fixversions => Proc.new {|f,arr| (arr.nil? || arr.empty?) ? '' : ("'" + arr.join("', '") + "'").cyan },
       :affectsversions => Proc.new {|f,arr| (arr.nil? || arr.empty?) ? '' : ("'" + arr.join("', '") + "'").cyan },
       :components => Proc.new {|f,arr| (arr.nil? || arr.empty?) ? '' : ("'" + arr.join("', '") + "'").yellowish },
+      :resolution => Proc.new {|f,str| str.to_s.red },
     }
 
     # this class turns a json object returned by the rest service into a flat hash of column-to-value mappings
