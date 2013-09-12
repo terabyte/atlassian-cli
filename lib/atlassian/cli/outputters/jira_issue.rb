@@ -72,6 +72,11 @@ module Atlassian
           end
         end
 
+        def display_issue_field(issue, field)
+          issue_map = @formatter.get_issue_map(issue)
+          puts issue_map[field]
+        end
+
         def header(str)
           str.to_s.capitalize.blue
         end

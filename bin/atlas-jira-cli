@@ -26,6 +26,7 @@ VALID_COMMANDS = {
   :jql => "Query issues using JQL (argument should be a JQL query string)",
   :transition => "Transition an issue by ID or key (supplied as a bare argument)",
   :view => "View an issue by ID or key (supplied as a bare argument)",
+  :viewField => "View specific field (bare argument) of an issue by ID or key (bare argument)",
   :edit => "Edit fields of an existing issue (supplied as a bare argument",
   :create => "Create an issue",
   :delete => "Delete an issue (issue key supplied as a bare argument)",
@@ -39,6 +40,7 @@ def parse_opts
     :columns => nil,
     :debug => nil,
     :cacert => nil,
+    :onlyfield => nil,
     :fields => {},
     :assignee => nil,
     :priority => nil,
@@ -212,6 +214,15 @@ def parse_opts
       puts optparse
       exit 1
     end
+  when :viewField
+    unless options[:onlyfield] = ARGV.shift
+      puts optparse
+      exit 1
+    end
+    unless options[:key_or_id] = ARGV.shift
+      puts optparse
+      exit 1
+    end
   when :view, :transition, :edit, :delete
     unless options[:key_or_id] = ARGV.shift
       puts optparse
@@ -290,6 +301,10 @@ begin
         ap comments
       end
       puts options[:outputter].display_issue_table(issue, comments)
+
+    when :viewField
+      issue = get_issue_from_key_or_id(options, client, options[:key_or_id])
+      options[:outputter].display_issue_field(issue, options[:onlyfield].downcase.to_sym)
 
     when :comment
       issue = get_issue_from_key_or_id(options, client, options[:key_or_id])
