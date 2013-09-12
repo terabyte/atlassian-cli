@@ -65,6 +65,9 @@ To hit an endpoint using curl, for example:
 There are many things I'd eventually like to implement.  For now, they are
 broken up by product.
 
+## BUGS
+* Create new issue with no component/type, try to edit it, profit?
+
 ## JIRA
 * JQL Query Pagination
 * Attach files
