@@ -94,7 +94,7 @@ def parse_opts
     o.separator ""
     o.separator "Authentication:"
     o.separator ""
-    o.separator "    By default, atlas-jira-cli will prompt you for a username and password.  You may also store your password in ~/.netrc under machine name atlas-jira-cli.example.com.  This is not advised for security purposes."
+    o.separator "    By default, atlas-jira-cli will prompt you for a username and password.  You may also store your password (and username, endpoint, and cacert) in ~/.atlas-cli-rc."
     o.separator ""
 
     o.separator ""
