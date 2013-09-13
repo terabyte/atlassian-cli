@@ -55,6 +55,8 @@ def parse_opts
     # This may be needed to work around a missing feature in terminal-table gem
     # For details, see: https://github.com/terabyte/terminal-table/commit/68815ba7b609478d0b865fffe49987f60a571342
     # The master branch of terabyte's fork of terminal-table gem should always work.
+    :username => nil, # handy to set this if you want
+    :password => nil, # but probably NOT this, for security reasons
   }
 
   if File.readable?(File.join(Dir.home, ATLAS_CLI_RC))
@@ -202,9 +204,6 @@ def parse_opts
   # this leaves unknown arguments alone
   optparse.parse!
 
-  # do pw after parse so we don't get prompted before showing help
-  options[:username], options[:password] = Atlassian::Cli::Credentials.new().get_credentials()
-
   # configure outputter
   if options[:columns]
     options[:outputter].display_columns = options[:columns]
@@ -277,6 +276,15 @@ begin
   end
 
   client = Atlassian::Rest::Jira::Client.new(options)
+
+  unless client.test_auth
+    # only prompt for pw if we aren't auth'd
+    username, password = Atlassian::Cli::Credentials.new().get_credentials(options[:username], options[:password])
+    client.username = username
+    client.password = password
+  end
+
+
   begin
 
     response = nil

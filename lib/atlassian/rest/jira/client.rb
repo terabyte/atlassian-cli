@@ -9,32 +9,51 @@ module Atlassian
 
       class Client < Atlassian::Rest::Client
 
+        attr_accessor :auth_success
+
         def initialize(options)
           super(options)
+
+          @auth_success = nil
         end
 
         def jql(query)
+          # always ensure we are logged in first
+          ensure_logged_in
+
           # path, params, headers
           response = json_get("rest/api/2/search", {'jql' => query})
         end
 
         def get_issue_by_id(id)
+          # always ensure we are logged in first
+          ensure_logged_in
+
           response = json_get("rest/api/2/search", {'jql' => "id = #{id}"})
           return response[:issues].andand.first
         end
 
         def get_issue_by_key(key)
+          # always ensure we are logged in first
+          ensure_logged_in
+
           response = json_get("rest/api/2/search", {'jql' => "key = #{key}"})
           return response[:issues].andand.first
         end
 
         # https://developer.atlassian.com/display/JIRADEV/JIRA+REST+API+Example+-+Add+Comment
         def get_comments_for_issue(issue)
+          # always ensure we are logged in first
+          ensure_logged_in
+
           response = json_get("rest/api/2/issue/#{issue[:key]}/comment")
           return response
         end
 
         def post_comment_for_issue(issue, comment)
+          # always ensure we are logged in first
+          ensure_logged_in
+
           response = json_post("rest/api/2/issue/#{issue[:key]}/comment", comment)
           return response
         end
@@ -43,6 +62,9 @@ module Atlassian
         # and https://docs.atlassian.com/jira/REST/latest/#idp1368336
         # and a lot of perserverence =|
         def post_transition(issue, new_state, comment_text = nil, resolution_name = nil)
+          # always ensure we are logged in first
+          ensure_logged_in
+
           # get list of possible states
           @log.debug "Searching for available transitions for issue #{issue[:key]}"
           response = json_get("rest/api/2/issue/#{issue[:key]}/transitions?expand=transitions,fields")
@@ -100,6 +122,9 @@ module Atlassian
 
         # https://developer.atlassian.com/display/JIRADEV/Updating+an+Issue+via+the+JIRA+REST+APIs suggests to use the /editmeta endpoint.  IT LIES.
         def issue_update(issue, edit_opts = {})
+          # always ensure we are logged in first
+          ensure_logged_in
+
 
           json = {
             :update => {}
@@ -248,6 +273,9 @@ module Atlassian
         end
 
         def issue_create(opts)
+          # always ensure we are logged in first
+          ensure_logged_in
+
           @log.debug "Creating issue with arguments #{opts}"
 
           json = {
@@ -419,11 +447,27 @@ module Atlassian
         end
 
         def issue_delete(key)
+          # always ensure we are logged in first
+          ensure_logged_in
+
           @log.debug "Deleting issue #{key}"
 
           response = json_delete("rest/api/2/issue/#{key}")
           @log.info "Successfully deleted issue #{key}"
           response
+        end
+
+        def test_auth()
+          unless @auth_success.nil?
+            return @auth_success
+          end
+
+          response = raw_get(@endpoint + "rest/auth/1/session")
+          if response.status.to_i == 200
+            @auth_success = true
+            return true
+          end
+          return false
         end
       end
     end
