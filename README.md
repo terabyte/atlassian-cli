@@ -71,7 +71,8 @@ broken up by product.
 ## JIRA
 * JQL Query Pagination
 * Attach files
-* issue linking
+* Move issue
+* Issue linking
 * edit issue type does not work
 * move issue to other projects
 * list components, priorities, assignees, etc.
