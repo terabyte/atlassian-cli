@@ -73,8 +73,10 @@ def parse_opts
   end
 
   # TODO XXX
-  options[:outputter] = Atlassian::Cli::Outputters::Table::JiraIssueList.new()
-  options[:issue_hashifier] = Atlassian::Hashifiers::JiraIssue.new()
+  options[:list_outputter] = Atlassian::Cli::Outputters::Table::JiraIssueList.new()
+  options[:single_outputter] = Atlassian::Cli::Outputters::Table::JiraIssue.new()
+  # TODO: how to pass client?
+  options[:issue_hashifier] = Atlassian::Hashifiers::JiraIssue.new({:include_comments => true})
 
   options[:logger] = Logger.new('atlas-jira-cli')
   options[:logger].outputters = Outputter.stdout
@@ -198,7 +200,7 @@ def parse_opts
     end
 
     o.on('-d', '--debug', 'enable debug output') do
-      options[:debug] = trueH
+      options[:debug] = true
       options[:logger].level = Log4r::DEBUG
     end
 
@@ -268,6 +270,9 @@ def get_issue_from_key_or_id(options, client, key_or_id)
   if issue.nil? || issue.empty?
     raise Atlassian::NotFoundError.new("Unable to find issue by key or id #{key_or_id}")
   end
+  if options[:include_comments]
+    issue[:comments] = client.get_comments_for_issue(issue)
+  end
   if options[:debug]
     ap issue
   end
@@ -284,6 +289,7 @@ begin
   end
 
   client = Atlassian::Rest::Jira::Client.new(options)
+  options[:issue_hashifier].client = client
 
   unless client.test_auth
     # only prompt for pw if we aren't auth'd
@@ -314,21 +320,20 @@ begin
       response[:issues].each do |rest_issue|
         hashes << options[:issue_hashifier].get_hash(rest_issue)
       end
-      puts options[:outputter].print_object(hashes)
+      puts options[:list_outputter].print_object(hashes)
     when :view
+      options[:include_comments] = true
       issue = get_issue_from_key_or_id(options, client, options[:key_or_id])
-      # try to get comments if we got an issue
-      if issue
-        comments = client.get_comments_for_issue(issue)[:comments]
-      end
       if options[:debug]
         ap comments
       end
-      puts options[:outputter].display_issue_table(issue, comments)
+      hash = options[:issue_hashifier].get_hash(issue)
+      puts options[:single_outputter].print_object(hash)
 
     when :viewField
       issue = get_issue_from_key_or_id(options, client, options[:key_or_id])
-      options[:outputter].display_issue_field(issue, options[:onlyfield].downcase.to_sym)
+      # too simple to need an outputter
+      puts issue[options[:onlyfield].downcase.to_sym]
 
     when :comment
       issue = get_issue_from_key_or_id(options, client, options[:key_or_id])

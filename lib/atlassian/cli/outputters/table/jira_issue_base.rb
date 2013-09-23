@@ -47,15 +47,30 @@ module Atlassian
             :summary => Proc.new {|f,hash,key| f.whitespace_fixup(hash[key].to_s) },
             :description => Proc.new {|f,hash,key| f.whitespace_fixup(hash[key].to_s) },
             :body => Proc.new {|f,hash,key| f.whitespace_fixup(hash[key].to_s) },
-            :created => Proc.new {|f,hash,key| Time.parse(hash[key]).localtime.strftime("%c").white },
-            :updated => Proc.new {|f,hash,key| Time.parse(hash[key]).localtime.strftime("%c").white },
+            :created => Proc.new {|f,hash,key| hash[key].nil? ? "nil" : Time.parse(hash[key]).localtime.strftime("%c").white },
+            :updated => Proc.new {|f,hash,key| hash[key].nil? ? "nil" : Time.parse(hash[key]).localtime.strftime("%c").white },
             :fixversions => Proc.new {|f,hash,key| (hash[key].nil? || hash[key].empty?) ? '' : ("'" + hash[key].join("', '") + "'").cyan },
             :affectsversions => Proc.new {|f,hash,key| (hash[key].nil? || hash[key].empty?) ? '' : ("'" + hash[key].join("', '") + "'").cyan },
             :components => Proc.new {|f,hash,key| (hash[key].nil? || hash[key].empty?) ? '' : ("'" + hash[key].join("', '") + "'").yellowish },
             :resolution => Proc.new {|f,hash,key| hash[key].to_s.red },
             # yeah, this one is crazy
-            :commentAuthor => Proc.new {|f,hash,key| hash[:displayName].to_s.yellowish + " (" + COLUMN_FORMATTING_MAP[:name].call(f,hash,:name) + ")\n" + COLUMN_FORMATTING_MAP[:created].call(f,hash,:created) },
+            :commentAuthor => Proc.new {|f,hash,key| puts "QQQ: #{hash.inspect}\n\n"; hash[:displayName].to_s.yellowish + " (" + COLUMN_FORMATTING_MAP[:name].call(f,hash,:name) + ")\n" + COLUMN_FORMATTING_MAP[:created].call(f,hash,:created) },
           }
+
+          # TODO: is this a special case?
+          DEFAULT_COLUMN_MAP = {
+            :key => true,
+            :reporter => true,
+            :assignee => true,
+            :status => true,
+            :priority => true,
+            :summary => true,
+            :description => true,
+            :created => true,
+            :updated => true,
+            :fixversions => true,
+            :affectsversions => true,
+          };
 
 
           def format_field(hash, key)

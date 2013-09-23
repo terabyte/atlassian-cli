@@ -18,6 +18,13 @@ module Atlassian
 
             super(options)
 
+            # from JiraIssueBase
+            if !DEFAULT_COLUMN_MAP.nil?
+              if @display_columns.nil?
+                @display_columns = DEFAULT_COLUMN_MAP
+              end
+            end
+
             @set_width = options[:set_width]
             if @set_width.nil?
               @set_width = true
@@ -32,6 +39,9 @@ module Atlassian
           # called to print the entire object
           # in this case, hash is actually an array of objects
           def print_object(issues)
+            if issues.nil?
+              raise "nil issue"
+            end
             if !issues.is_a? Array
               issues = [issues]
             end

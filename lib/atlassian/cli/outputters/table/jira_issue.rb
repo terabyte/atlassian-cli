@@ -21,6 +21,13 @@ module Atlassian
 
             super(options)
 
+            # from JiraIssueBase
+            if !DEFAULT_COLUMN_MAP.nil?
+              if @display_columns.nil?
+                @display_columns = DEFAULT_COLUMN_MAP
+              end
+            end
+
             @set_width = options[:set_width]
             if @set_width.nil?
               @set_width = true
@@ -35,6 +42,7 @@ module Atlassian
           # called to print the entire object
           def print_object(hash)
             # prints the object, respecting @reject_columns and @display_columns (by using filter_fields())
+            puts "HASH: #{hash.inspect}"
             table = Terminal::Table.new do |t|
               if @set_width
                 width, height = HighLine::SystemExtensions.terminal_size
@@ -46,7 +54,7 @@ module Atlassian
                 t << [{:value => key.to_s.capitalize.blue, :alignment => :right}, format_field(hash, key)]
               end
               # list comments at the end
-              comments.each do |c|
+              hash[:comments].andand.each do |c|
 
                 name = format_field(c, :commentAuthor)
                 body = format_field(c, :body)

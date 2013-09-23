@@ -5,85 +5,38 @@ require 'atlassian/exceptions'
 module Atlassian
   module Hashifiers
 
-    # this class turns a json object returned by the rest service into a flat hash of column-to-value mappings
-
     class JiraIssue
+      # this class turns a json object returned by the rest service into a flat hash of column-to-value mappings
+      attr_accessor :client
+      attr_accessor :include_comments
+
       # mapping to find each column in the structure returned from the rest API
       ISSUE_COLUMN_MAP = {
-        :id => Proc.new {|issue| issue[:id] },
-        :key => Proc.new {|issue| issue[:key] },
-        :url => Proc.new {|issue| issue[:self] },
-        :description => Proc.new {|issue| issue[:fields].andand[:description] },
-        :created => Proc.new {|issue| issue[:fields].andand[:created] },
-        :updated => Proc.new {|issue| issue[:fields].andand[:updated] },
-        :priority => Proc.new {|issue| issue[:fields].andand[:priority].andand[:name] },
-        :status => Proc.new {|issue| issue[:fields].andand[:status].andand[:name] },
-        :summary => Proc.new {|issue| issue[:fields].andand[:summary] },
-        :assignee => Proc.new {|issue| issue[:fields].andand[:assignee].andand[:name] },
-        :reporter => Proc.new {|issue| issue[:fields].andand[:reporter].andand[:name] },
-        :resolution => Proc.new {|issue| issue[:fields].andand[:resolution].andand[:name] || "<none>" },
-        :fixversions => Proc.new {|issue| issue[:fields].andand[:fixVersions].andand.collect {|x| x[:name] } },
-        :affectsversions => Proc.new {|issue| issue[:fields].andand[:versions].andand.collect {|x| x[:name] } },
-        :components => Proc.new {|issue| issue[:fields].andand[:components].andand.collect {|x| x[:name] } },
-        :default => Proc.new {|issue,colname| issue[:fields].andand[colname] || nil },
-        :comments => Proc.new {|issue| issue[:fields].andand[:comments].andand.collect {|x| { :displayName => x[:author][:displayName], :name => x[:author][:name], :body => x[:body] } } },
-      }
-
-      # indicates the weight of each column for sorting.  I made these values up.
-      # smaller number -> appears earlier
-      # TODO: belongs in view layer.
-      COLUMN_SORTING_MAP = {
-        :id              => 10100,
-        :key             => 11000,
-
-        :priority        => 20100,
-        :status          => 20200,
-        :resolution      => 20300,
-
-        :reporter        => 21100,
-        :assignee        => 21200,
-
-        :created         => 22000,
-        :updated         => 22100,
-
-        :components      => 25100,
-        :fixversions     => 25200,
-        :affectsversions => 25300,
-
-        :summary         => 30000,
-        :description     => 30100,
-
-        :url             => 80100,
-      }
-
-      # TODO: belongs elsewhere
-      COLUMN_FORMATTING_MAP = {
-        :id => Proc.new {|f,str| str.to_s.green },
-        :key => Proc.new {|f,str| str.to_s.green },
-        :name => Proc.new {|f,str| str.to_s.greenish },
-        :reporter => Proc.new {|f,str| str.to_s.greenish },
-        :assignee => Proc.new {|f,str| str.to_s.greenish },
-        :displayName => Proc.new {|f,str| str.to_s.yellowish },
-        :default => Proc.new {|f,str| str.to_s },
-        :priority => Proc.new {|f,str| str.to_s.red },
-        :status => Proc.new {|f,str| str.to_s.red },
-        :summary => Proc.new {|f,str| f.whitespace_fixup(str.to_s) },
-        :description => Proc.new {|f,str| f.whitespace_fixup(str.to_s) },
-        :body => Proc.new {|f,str| f.whitespace_fixup(str.to_s) },
-        :created => Proc.new {|f, str| Time.parse(str).localtime.strftime("%c").white },
-        :updated => Proc.new {|f, str| Time.parse(str).localtime.strftime("%c").white },
-        :fixversions => Proc.new {|f,arr| (arr.nil? || arr.empty?) ? '' : ("'" + arr.join("', '") + "'").cyan },
-        :affectsversions => Proc.new {|f,arr| (arr.nil? || arr.empty?) ? '' : ("'" + arr.join("', '") + "'").cyan },
-        :components => Proc.new {|f,arr| (arr.nil? || arr.empty?) ? '' : ("'" + arr.join("', '") + "'").yellowish },
-        :resolution => Proc.new {|f,str| str.to_s.red },
+        :id => Proc.new {|s,issue| issue[:id] },
+        :key => Proc.new {|s,issue| issue[:key] },
+        :url => Proc.new {|s,issue| issue[:self] },
+        :description => Proc.new {|s,issue| issue[:fields].andand[:description] },
+        :created => Proc.new {|s,issue| issue[:fields].andand[:created] },
+        :updated => Proc.new {|s,issue| issue[:fields].andand[:updated] },
+        :priority => Proc.new {|s,issue| issue[:fields].andand[:priority].andand[:name] },
+        :status => Proc.new {|s,issue| issue[:fields].andand[:status].andand[:name] },
+        :summary => Proc.new {|s,issue| issue[:fields].andand[:summary] },
+        :assignee => Proc.new {|s,issue| issue[:fields].andand[:assignee].andand[:name] },
+        :reporter => Proc.new {|s,issue| issue[:fields].andand[:reporter].andand[:name] },
+        :resolution => Proc.new {|s,issue| issue[:fields].andand[:resolution].andand[:name] || "<none>" },
+        :fixversions => Proc.new {|s,issue| issue[:fields].andand[:fixVersions].andand.collect {|x| x[:name] } },
+        :affectsversions => Proc.new {|s,issue| issue[:fields].andand[:versions].andand.collect {|x| x[:name] } },
+        :components => Proc.new {|s,issue| issue[:fields].andand[:components].andand.collect {|x| x[:name] } },
+        :default => Proc.new {|s,issue,colname| issue[:fields].andand[colname] || nil },
+        :comments => Proc.new {|s,issue| s.include_comments ? s.client.get_comments_for_issue(issue).andand[:comments].collect {|x| { :displayName => x[:author][:displayName], :name => x[:author][:name], :body => x[:body], :created => x[:created] } } : nil },
       }
 
       # TODO: belongs elsewhere
       attr_accessor :color
 
       def initialize(options = {})
-        # TODO: belongs elsewhere
-        @color = options[:color]
+        @client = options[:client]
+        @include_comments = options[:include_comments]
       end
 
       # TODO: belongs elsewhere
@@ -114,7 +67,7 @@ module Atlassian
       def get_hash(rest_issue)
         issue_hash = {}
         ISSUE_COLUMN_MAP.keys.sort.each do |col|
-          issue_hash[col] = ISSUE_COLUMN_MAP[col].call(rest_issue)
+          issue_hash[col] = ISSUE_COLUMN_MAP[col].call(self,rest_issue)
         end
         return issue_hash
       end
