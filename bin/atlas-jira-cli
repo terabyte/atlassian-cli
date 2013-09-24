@@ -56,11 +56,13 @@ def parse_opts
     :issuetype => nil,
     :projectkey => nil,
     :outputter_map => {},
-    # to disable column wrapping, change this to
+    :outputter_opts => {:color => true},
+    # to disable column wrapping, change this to include
     # :outputter_opts => { :set_width => false },
     # This may be needed to work around a missing feature in terminal-table gem
     # For details, see: https://github.com/terabyte/terminal-table/commit/68815ba7b609478d0b865fffe49987f60a571342
     # The master branch of terabyte's fork of terminal-table gem should always work.
+
     :username => nil, # handy to set this if you want
     :password => nil, # but probably NOT this, for security reasons
   }
@@ -117,15 +119,19 @@ def parse_opts
     o.separator ""
     o.separator "You can implement your own outputter by extending Atlassian::Cli::Outputters::OutputerBase."
 
-    o.on('-o', '--outputter [TYPE],[CLASS NAME]', "name of outputter class to use (defaults are the Table outputter)") do |o|
-      type, op = o.split(",")
+    o.on('-o', '--outputter [TYPE],[CLASS NAME]', "name of outputter class to use (defaults are the Table outputter)") do |op|
+      type, op = op.split(",")
       # TODO: verify the argument right here
       options[:outputter_map][type.to_sym] = op
     end
 
-    o.separator ""
-    o.separator "Create Options:"
-    o.separator ""
+    o.on('--color true/false', "Use color or not (passed to outputter)") do |c|
+      if c.match(/false/i)
+        puts "false!"
+        options[:outputter_opts][:color] = false
+      end
+    end
+
     o.separator ""
     o.separator "Create Options:"
     o.separator ""
@@ -296,10 +302,11 @@ end
 
 def display_using_outputter(options, type, data, outputter_opts = {})
   outputter = nil
+  final_opts = (options[:outputter_opts] || {}).update(outputter_opts)
   if options[:outputter_map][type].nil?
-   outputter = eval Atlassian::Cli::Outputters.get_default_outputter(type) + ".new(outputter_opts)"
+   outputter = eval Atlassian::Cli::Outputters.get_default_outputter(type) + ".new(final_opts)"
   else
-    outputter = eval options[:outputter_map][type] + ".new(outputter_opts)"
+    outputter = eval options[:outputter_map][type] + ".new(final_opts)"
   end
   puts outputter.print_object(data)
 end

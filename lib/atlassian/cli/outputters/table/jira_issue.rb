@@ -48,7 +48,9 @@ module Atlassian
 
               sort_fields(filter_fields(hash.keys)).each do |key|
                 next if key == :comments
-                t << [{:value => key.to_s.capitalize.blue, :alignment => :right}, format_field(hash, key)]
+                header = key.to_s.capitalize
+                header = header.blue if @color
+                t << [{:value => header, :alignment => :right}, format_field(hash, key)]
               end
               # list comments at the end
               hash[:comments].andand.each do |c|

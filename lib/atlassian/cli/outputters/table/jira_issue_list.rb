@@ -57,7 +57,9 @@ module Atlassian
               header = []
               sorted_fields = sort_fields(filter_fields(issues.first.keys))
               sorted_fields.each do |key|
-                header << key.to_s.capitalize.blue
+                h = key.to_s.capitalize
+                h = h.blue if @color
+                header << h
               end
 
               t << header

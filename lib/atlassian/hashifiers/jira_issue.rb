@@ -31,27 +31,9 @@ module Atlassian
         :comments => Proc.new {|s,issue| s.include_comments ? s.client.get_comments_for_issue(issue).andand[:comments].collect {|x| { :displayName => x[:author][:displayName], :name => x[:author][:name], :body => x[:body], :created => x[:created] } } : nil },
       }
 
-      # TODO: belongs elsewhere
-      attr_accessor :color
-
       def initialize(options = {})
         @client = options[:client]
         @include_comments = options[:include_comments]
-      end
-
-      # TODO: belongs elsewhere
-      def get_column(col, issue)
-        if ISSUE_COLUMN_MAP[col]
-          ISSUE_COLUMN_MAP[col].call(issue)
-        else
-          ISSUE_COLUMN_MAP[:default].call(issue, col)
-        end
-      end
-
-      # sorts columns by the weight
-      # TODO: belongs elsewhere
-      def sort_cols(cols)
-        cols.sort {|a,b| COLUMN_SORTING_MAP[a].to_s <=> COLUMN_SORTING_MAP[b].to_s }
       end
 
       def get_row(cols, issue)
@@ -71,22 +53,6 @@ module Atlassian
         end
         return issue_hash
       end
-
-      # TODO: belongs elsewhere
-      def format_text_by_column(col, data)
-        if COLUMN_FORMATTING_MAP[col]
-          COLUMN_FORMATTING_MAP[col].call(self, data)
-        else
-          COLUMN_FORMATTING_MAP[:default].call(self, data)
-        end
-      end
-
-      # '\r" ends up embedded in places due to windows copy/paste and messes up everything.
-      # TODO: belongs elsewhere
-      def whitespace_fixup(text)
-        text.andand.gsub(/\r/, "")
-      end
-
     end
   end
 end
