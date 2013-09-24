@@ -40,6 +40,15 @@ module Atlassian
           # called to print the entire object
           def print_object(hash)
             # prints the object, respecting @hide_columns and @display_columns (by using filter_fields())
+            if hash.is_a? Array
+              # support printing multiple issues too...
+              output = ""
+              hash.each do |item|
+                output = output + print_object(item).to_s
+              end
+              return output
+            end
+
             table = Terminal::Table.new do |t|
               if @set_width
                 width, height = HighLine::SystemExtensions.terminal_size

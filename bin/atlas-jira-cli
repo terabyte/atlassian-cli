@@ -143,12 +143,15 @@ def parse_opts
       options[:outputter_map][type.to_sym] = op
     end
 
+    o.separator "    For example, `atlas-jira-cli jql 'assignee=admin' --outputter jira_issue_list,Table/JiraIssue` will use the single-issue view on a list of issues"
+
     o.on('--color true/false', "Use color or not (passed to outputter)") do |c|
       if c.match(/false/i)
         puts "false!"
         options[:outputter_opts][:color] = false
       end
     end
+
 
     # TODO: allow preserving order?
     # TODO: bad touch?
