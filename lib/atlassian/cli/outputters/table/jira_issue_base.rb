@@ -16,6 +16,7 @@ module Atlassian
             :priority        => 20100,
             :status          => 20200,
             :resolution      => 20300,
+            :type            => 20400,
 
             :reporter        => 21100,
             :assignee        => 21200,
@@ -42,6 +43,7 @@ module Atlassian
             :displayName => Proc.new {|f,hash,key| f.color ? hash[key].to_s.yellowish : hash[key].to_s },
             :default => Proc.new {|f,hash,key| hash[key].to_s },
             :priority => Proc.new {|f,hash,key| f.color ? hash[key].to_s.red : hash[key].to_s },
+            :type => Proc.new {|f,hash,key| f.color ? hash[key].to_s.red : hash[key].to_s },
             :status => Proc.new {|f,hash,key| f.color ? hash[key].to_s.red : hash[key].to_s },
             :summary => Proc.new {|f,hash,key| f.whitespace_fixup(hash[key].to_s) },
             :description => Proc.new {|f,hash,key| f.whitespace_fixup(hash[key].to_s) },

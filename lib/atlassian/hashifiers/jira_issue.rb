@@ -28,6 +28,7 @@ module Atlassian
         :affectsversions => Proc.new {|s,issue| issue[:fields].andand[:versions].andand.collect {|x| x[:name] } },
         :components => Proc.new {|s,issue| issue[:fields].andand[:components].andand.collect {|x| x[:name] } },
         :default => Proc.new {|s,issue,colname| issue[:fields].andand[colname] || nil },
+        :type => Proc.new {|s,issue,colname| issue[:fields].andand[:issuetype].andand[:name] },
         :comments => Proc.new {|s,issue| s.include_comments ? s.client.get_comments_for_issue(issue).andand[:comments].collect {|x| { :displayName => x[:author][:displayName], :name => x[:author][:name], :body => x[:body], :created => x[:created] } } : nil },
       }
 
