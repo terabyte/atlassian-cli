@@ -42,6 +42,7 @@ def parse_opts
 
   # defaults overridable via ~/.atlas-cli-rc
   options = {
+    :printing_help => false,
     :endpoint => "http://localhost:2990/jira",
     :columns => nil,
     :debug => nil,
@@ -82,28 +83,14 @@ def parse_opts
   options[:logger].outputters = Outputter.stdout
   options[:logger].level = Log4r::INFO
 
-  optparse = OptionParser.new do |o|
-    o.banner = "Usage: atlas-jira-cli [command] [options]"
+  ####### FULL Reference Options
 
-    o.separator ""
-    o.separator "Commands:"
-    VALID_COMMANDS.keys.sort.each do |k|
-      o.separator sprintf("    %10s - %s", k.to_s, VALID_COMMANDS[k])
-    end
+  optparse_long = OptionParser.new do |o|
 
     o.separator ""
     o.separator "Authentication:"
     o.separator ""
     o.separator "    By default, atlas-jira-cli will prompt you for a username and password.  You may also store your password in ~/.netrc under machine name atlas-jira-cli.example.com.  This is not advised for security purposes."
-    o.separator ""
-
-    o.separator "Options:"
-    o.separator ""
-
-    o.on('-e', '--endpoint [URL]', 'Endpoint (e.g. https://jira.example.com:2990/jira)') do |e|
-      options[:endpoint] = e
-    end
-
     o.separator ""
 
     o.separator "Output:"
@@ -155,6 +142,50 @@ def parse_opts
       h.split(',').each do |i|
         options[:outputter_opts][:hide_columns][i.to_sym] = true
       end
+    end
+
+    o.on('--long-help', 'Display FULL usage screen') do
+      puts o
+      options[:printing_help] = true
+    end
+  end
+
+  ####### Quick Reference Options
+
+  optparse = OptionParser.new do |o|
+    o.banner = "Usage: atlas-jira-cli [command] [options]"
+
+    o.separator ""
+    o.separator "Commands:"
+    VALID_COMMANDS.keys.sort.each do |k|
+      o.separator sprintf("    %10s - %s", k.to_s, VALID_COMMANDS[k])
+    end
+
+    o.separator ""
+    o.separator "Generic Options:"
+    o.separator ""
+
+    o.on('-e', '--endpoint [URL]', 'Endpoint (e.g. https://jira.example.com:2990/jira)') do |e|
+      options[:endpoint] = e
+    end
+
+    o.on('--cacert [FILE.pem]', 'cacert file to use for SSL') do |f|
+      options[:cacert] = f
+    end
+
+    o.on('-d', '--debug', 'enable debug output') do
+      options[:debug] = true
+      options[:logger].level = Log4r::DEBUG
+    end
+
+    o.on('-h', '--help', 'Display quick usage screen') do
+      puts o
+      options[:printing_help] = true
+    end
+
+    o.on('--long-help', 'Display FULL usage screen') do
+      puts o
+      options[:printing_help] = true
     end
 
     o.separator ""
@@ -222,32 +253,18 @@ def parse_opts
       options[:editState] = state
     end
 
-    # TODO: enable partial matching of these, like how we do --editState?
+    # TODO: enable partial matching of these, like how we do --state?
     o.on('--resolution [resolution name]', "Resolution to use (defaults to Fixed, other options include 'Duplicate' and 'Won't Fix', etc)") do |state|
       options[:resolution] = state
-    end
-
-    o.separator ""
-    o.separator "Generic Options:"
-    o.separator ""
-
-    o.on('--cacert [FILE.pem]', 'cacert file to use for SSL') do |f|
-      options[:cacert] = f
-    end
-
-    o.on('-d', '--debug', 'enable debug output') do
-      options[:debug] = true
-      options[:logger].level = Log4r::DEBUG
-    end
-
-    o.on('-h', '--help', 'Display this screen') do
-      puts o
-      exit
     end
   end
 
   # this leaves unknown arguments alone
   optparse.parse!
+  optparse_long.parse!
+  if options[:printing_help]
+    exit
+  end
 
   # now what should be left is "[command] [...]"
   command = ARGV.shift.andand.to_sym
