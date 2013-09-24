@@ -159,11 +159,11 @@ def parse_opts
     o.separator ""
 
     # todo: support editing issue type?
-    o.on('--issueType [REGEX]', "Text matching the name/description of the issue type to create (if not given, lowest ID is used)") do |ct|
+    o.on('--issue-type [REGEX]', "Text matching the name/description of the issue type to create (if not given, lowest ID is used)") do |ct|
       options[:issuetype] = ct
     end
 
-    o.on('--projectKey [KEY]', "Key of the project to create the issue in") do |ct|
+    o.on('--project-key [KEY]', "Key of the project to create the issue in") do |ct|
       # keys are always all-caps and SOME (but not all) rest endpoints are case senstiive.
       options[:projectkey] = ct.upcase
     end
@@ -192,17 +192,17 @@ def parse_opts
       options[:components] << t
     end
 
-    o.on('--fixversions [+|-][REGEX]', "Add or remove fixversions matching the given regex (may be used multiple times)") do |t|
+    o.on('--fix-versions [+|-][REGEX]', "Add or remove fixversions matching the given regex (may be used multiple times)") do |t|
       options[:fixversions] << t
     end
 
-    o.on('--affectsversions [+|-][REGEX]', "Add or remove fixversions matching the given regex (may be used multiple times)") do |t|
+    o.on('--affects-versions [+|-][REGEX]', "Add or remove fixversions matching the given regex (may be used multiple times)") do |t|
       options[:affectsversions] << t
     end
 
     o.separator "    NOTE: for REGEX starting with a '-' you must do '--flag=-TEXT', '--flag -TEXT' will not parse correctly"
 
-    o.on('--commentText [TEXT]', "Text of the comment to add to the issue") do |ct|
+    o.on('--comment [TEXT]', "Text of the comment to add to the issue") do |ct|
       options[:commentText] = ct
     end
 
@@ -215,7 +215,7 @@ def parse_opts
     o.separator "Transition Options:"
     o.separator ""
 
-    o.on('--editState [new state]', "State to transition the issue to") do |state|
+    o.on('--state [new state]', "State to transition the issue to") do |state|
       options[:editState] = state
     end
 
