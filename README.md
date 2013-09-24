@@ -72,6 +72,7 @@ broken up by product.
 * JQL Query Pagination
 * Attach files
 * issue linking
+* edit issue type does not work
 
 ## Confluence
 * Fetch raw page, upload raw page

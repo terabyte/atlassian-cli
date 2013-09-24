@@ -313,7 +313,7 @@ module Atlassian
 
           found_issue_type = nil
           match = false
-          createmeta[:projects].first[:issuetypes].each do |type|
+          createmeta[:projects].first[:issuetypes].sort {|a,b| a[:id].to_i <=> b[:id].to_i }.each do |type|
             next if type[:subtask]
 
             @log.debug "Found issuetype: #{type[:name]}"
@@ -321,7 +321,7 @@ module Atlassian
               found_issue_type = type
             end
 
-            if type[:name].match(Regexp.new(opts[:issuetype], Regexp::IGNORECASE))
+            if type[:name].match(Regexp.new(opts[:issuetype] || ".", Regexp::IGNORECASE))
               found_issue_type = type
               match = true
               break
@@ -462,7 +462,8 @@ module Atlassian
           items = json_get(url)
           item_name = nil
           item_id = nil
-          items.each do |p|
+          # sort so we always find the same one, lowest ID first
+          items.sort {|a,b| a[:id].to_i <=> b[:id].to_i}.each do |p|
             if p[:name].match(regex)
               @log.debug("Matched item name #{p[:name]} for url #{url}")
               item_name = p[:name]
