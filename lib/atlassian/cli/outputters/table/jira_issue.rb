@@ -39,7 +39,7 @@ module Atlassian
 
           # called to print the entire object
           def print_object(hash)
-            # prints the object, respecting @reject_columns and @display_columns (by using filter_fields())
+            # prints the object, respecting @hide_columns and @display_columns (by using filter_fields())
             table = Terminal::Table.new do |t|
               if @set_width
                 width, height = HighLine::SystemExtensions.terminal_size

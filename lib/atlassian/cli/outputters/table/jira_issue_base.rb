@@ -96,7 +96,7 @@ module Atlassian
             if display_columns.nil?
               display_columns = DEFAULT_COLUMN_MAP
             end
-            reject_columns = options[:reject_columns]
+            hide_columns = options[:hide_columns]
           end
         end
       end

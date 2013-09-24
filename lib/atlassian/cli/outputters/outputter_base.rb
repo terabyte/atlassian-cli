@@ -35,14 +35,14 @@ module Atlassian
       class OutputterBase
 
         attr_accessor :display_columns
-        attr_accessor :reject_columns
+        attr_accessor :hide_columns
 
         # called to print the entire object
         def print_object(hash)
           raise "You must extend OutputterBase and implement print_object(hash)"
-          # prints the object, respecting @reject_columns and @display_columns
+          # prints the object, respecting @hide_columns and @display_columns
           # if @display_columns is nil, display all
-          # if @reject_columns is not empty, reject any keys in it.
+          # if @hide_columns is not empty, reject any keys in it.
         end
 
         # called to format the data in a single field
@@ -52,8 +52,7 @@ module Atlassian
         end
 
         def initialize(options = {})
-          # TODO: rename reject_columns to hide_columns
-          self.reject_columns = options[:reject_columns] || {}
+          self.hide_columns = options[:hide_columns] || {}
           self.display_columns = options[:display_columns] || nil
         end
 
@@ -62,13 +61,13 @@ module Atlassian
           fields.each do |f|
             if self.display_columns.nil?
               # display all but rejects
-              if self.reject_columns[f].nil?
+              if self.hide_columns[f].nil?
                 filtered_fields.push(f)
               end
             else
               # only display te contents of @display_columns
               if self.display_columns[f]
-                if !self.reject_columns[f]
+                if !self.hide_columns[f]
                   filtered_fields.push(f)
                 end
               end
