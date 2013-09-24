@@ -190,7 +190,7 @@ def parse_opts
     end
 
     o.separator ""
-    o.separator "Create/Edit Options: (projectKey, issueType, and summary are REQUIRED)"
+    o.separator "Create/Edit Options: (project-key, issue-type, and summary are REQUIRED)"
     o.separator ""
 
     o.on('--summary [TEXT]', "Shorthand for --field summary,\"TEXT\"") do |t|
