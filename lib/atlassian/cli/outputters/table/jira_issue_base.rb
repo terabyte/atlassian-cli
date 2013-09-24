@@ -90,6 +90,14 @@ module Atlassian
           def whitespace_fixup(text)
             text.andand.gsub(/\r/, "")
           end
+
+          def parse_column_options(options)
+            display_columns = options[:display_columns]
+            if display_columns.nil?
+              display_columns = DEFAULT_COLUMN_MAP
+            end
+            reject_columns = options[:reject_columns]
+          end
         end
       end
     end

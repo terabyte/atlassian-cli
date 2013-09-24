@@ -51,7 +51,7 @@ def parse_opts
     :affectsversions => [],
     :issuetype => nil,
     :projectkey => nil,
-    :outputter_opts => {},
+    :outputter_map => {},
     # to disable column wrapping, change this to
     # :outputter_opts => { :set_width => false },
     # This may be needed to work around a missing feature in terminal-table gem
@@ -71,12 +71,6 @@ def parse_opts
     end
     options.update(JSON.parse(rc_str).deep_symbolize_keys)
   end
-
-  # TODO XXX
-  options[:list_outputter] = Atlassian::Cli::Outputters::Table::JiraIssueList.new()
-  options[:single_outputter] = Atlassian::Cli::Outputters::Table::JiraIssue.new()
-  # TODO: how to pass client?
-  options[:issue_hashifier] = Atlassian::Hashifiers::JiraIssue.new({:include_comments => true})
 
   options[:logger] = Logger.new('atlas-jira-cli')
   options[:logger].outputters = Outputter.stdout
@@ -104,6 +98,30 @@ def parse_opts
       options[:endpoint] = e
     end
 
+    o.separator ""
+
+    o.separator "Output:"
+    o.separator ""
+    o.separator "Known outputters include:"
+    outputters = Atlassian::Cli::Outputters.get_outputters
+    outputters.keys.sort.each do |type|
+      o.separator "\tType #{type.to_s}"
+      outputters[type].each do |op|
+        o.separator "\t\t#{op[1]} (weight: #{op[0]})"
+      end
+    end
+    o.separator ""
+    o.separator "You can implement your own outputter by extending Atlassian::Cli::Outputters::OutputerBase."
+
+    o.on('-o', '--outputter [TYPE],[CLASS NAME]', "name of outputter class to use (defaults are the Table outputter)") do |o|
+      type, op = o.split(",")
+      # TODO: verify the argument right here
+      options[:outputter_map][type.to_sym] = op
+    end
+
+    o.separator ""
+    o.separator "Create Options:"
+    o.separator ""
     o.separator ""
     o.separator "Create Options:"
     o.separator ""
@@ -179,18 +197,17 @@ def parse_opts
     o.separator ""
 
     # TODO: allow preserving order?
-    # TODO: this
-    #default_columns = Atlassian::Cli::Outputters::JiraIssue::DEFAULT_COLUMNS
-    #o.on('--columns comma,separated,list', "Comma-separated list of fields to include in display (defaults are #{"" default_columns.join(',')}.  Include 'default' to add default fields to a custom list") do |l|
-    o.on('--columns comma,separated,list', "Comma-separated list of fields to include in display (defaults are BLAH FOO.  Include 'default' to add default fields to a custom list") do |l|
+    # TODO: bad touch?
+    default_columns = Atlassian::Cli::Outputters::Table::JiraIssue::DEFAULT_COLUMN_MAP.keys.sort
+    o.on('--columns comma,separated,list', "Comma-separated list of fields to include in display (defaults are #{default_columns.join(", ")}).  Include 'default' to add default fields to a custom list") do |l|
       unless options[:columns]
-        options[:columns] = []
+        options[:columns] = {}
       end
       l.split(',').each do |i|
-        if i == "default"
-          #default_columns.each {|c| options[:columns] << c}
+        if i.match(/defaults?/i)
+          default_columns.each {|x| options[:columns][x.to_sym] = true }
         else
-          #options[:columns] << i.to_sym
+          options[:columns][i.to_sym] = true
         end
       end
     end
@@ -212,12 +229,6 @@ def parse_opts
 
   # this leaves unknown arguments alone
   optparse.parse!
-
-  # configure outputter
-  if options[:columns]
-    #options[:outputter].display_columns = options[:columns]
-    #TODO XXX
-  end
 
   # now what should be left is "[command] [...]"
   command = ARGV.shift.andand.to_sym
@@ -279,17 +290,30 @@ def get_issue_from_key_or_id(options, client, key_or_id)
   issue
 end
 
+def display_using_outputter(options, type, data, outputter_opts = {})
+  outputter = nil
+  if options[:outputter_map][type].nil?
+   outputter = eval Atlassian::Cli::Outputters.get_default_outputter(type) + ".new(outputter_opts)"
+  else
+    outputter = eval options[:outputter_map][type] + ".new(outputter_opts)"
+  end
+  puts outputter.print_object(data)
+end
+
 begin
 
   options = parse_opts
 
+  # XXX TODO: why is empty columns not the same as default?
+  if options[:columns].nil?
+    options[:columns] = Atlassian::Cli::Outputters::Table::JiraIssue::DEFAULT_COLUMN_MAP
+  end
   if options[:debug]
     # yeah, this next line is hawt
     ap options.clone.update(:password => options[:password].andand.gsub(/./, "*"))
   end
 
   client = Atlassian::Rest::Jira::Client.new(options)
-  options[:issue_hashifier].client = client
 
   unless client.test_auth
     # only prompt for pw if we aren't auth'd
@@ -304,7 +328,6 @@ begin
     response = nil
     issue = nil
     issues = nil
-    comments = nil
 
     ####
     ## Main Command Loop
@@ -317,18 +340,19 @@ begin
       end
 
       hashes = []
+      hashifier = Atlassian::Hashifiers::JiraIssue.new()
       response[:issues].each do |rest_issue|
-        hashes << options[:issue_hashifier].get_hash(rest_issue)
+        hashes << hashifier.get_hash(rest_issue)
       end
-      puts options[:list_outputter].print_object(hashes)
+      display_using_outputter(options, :jira_issue_list, hashes, {:display_columns => options[:columns]})
     when :view
-      options[:include_comments] = true
       issue = get_issue_from_key_or_id(options, client, options[:key_or_id])
       if options[:debug]
-        ap comments
+        ap issue
       end
-      hash = options[:issue_hashifier].get_hash(issue)
-      puts options[:single_outputter].print_object(hash)
+      hashifier = Atlassian::Hashifiers::JiraIssue.new(:client => client, :include_comments => true)
+      hash = hashifier.get_hash(issue)
+      display_using_outputter(options, :jira_issue, hash, {:display_columns => options[:columns]})
 
     when :viewField
       issue = get_issue_from_key_or_id(options, client, options[:key_or_id])

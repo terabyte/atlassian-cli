@@ -14,16 +14,14 @@ module Atlassian
           # Specifically, defines: format_field(hash, key) and sort_fields(fields)
           include Atlassian::Cli::Outputters::Table::JiraIssueBase
 
+          Atlassian::Cli::Outputters.register_outputter(self, :jira_issue_list, 1000)
+
           def initialize(options = {})
 
             super(options)
 
             # from JiraIssueBase
-            if !DEFAULT_COLUMN_MAP.nil?
-              if @display_columns.nil?
-                @display_columns = DEFAULT_COLUMN_MAP
-              end
-            end
+            parse_column_options(options)
 
             @set_width = options[:set_width]
             if @set_width.nil?
