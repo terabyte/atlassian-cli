@@ -72,8 +72,6 @@ broken up by product.
 * JQL Query Pagination
 * Attach files
 * Close as a dupe (ability to set resolution), maybe issue linking
-* Allow specifying which columns shown in "view" and "jql", including "all"
-* allow "view" to show multiple issues with jql.
 
 ## Confluence
 * Fetch raw page, upload raw page
@@ -86,7 +84,6 @@ broken up by product.
 * Permissions admin?
 
 ## Generic
-* Raw JSON output
 * Support using a session cookie to cache credentials (p0, otherwise the CLI puts undue load on crowd/ldap)
 * TEST COVERAGE
 * Implement oauth support?
