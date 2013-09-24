@@ -342,7 +342,7 @@ module Atlassian
             if priority[0].nil?
               @log.error "Unable to find priority for #{opts[:priority]}, ignoring!"
             else
-              json[:fields][:priority] = { :id => priortiy[0]}
+              json[:fields][:priority] = { :id => priority[0]}
             end
           end
 
@@ -426,7 +426,7 @@ module Atlassian
 
           if opts[:assignee]
             # get the list of assignable people for this issue
-            assignees = json_get("rest/api/2/user/assignable/search?issueKey=#{issue[:key]}&maxResults=2&username=#{URI.escape(edit_opts[:assignee])}")
+            assignees = json_get("rest/api/2/user/assignable/search?project=#{opts[:projectkey]}&maxResults=2&username=#{URI.escape(opts[:assignee])}")
 
             if (assignees.size != 1)
               @log.error "Unable to find UNIQUE assignee for #{edit_opts[:assignee]}, ignoring (try a larger substring, check spelling?)"
