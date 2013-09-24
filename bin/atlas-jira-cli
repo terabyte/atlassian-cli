@@ -119,8 +119,11 @@ def parse_opts
     o.separator ""
     o.separator "You can implement your own outputter by extending Atlassian::Cli::Outputters::OutputerBase."
 
-    o.on('-o', '--outputter [TYPE],[CLASS NAME]', "name of outputter class to use (defaults are the Table outputter)") do |op|
+    o.on('-o', '--outputter [TYPE],[CLASS NAME]', "name of outputter class to use (defaults are the Table outputter).  If the outputter is in the Atlassian::Cli::Outputters namespace, you can abbreviate, e.g. 'Atlassian::Cli::Outputters::Table::JiraIssue' becomes 'Table/JiraIssue'.") do |op|
       type, op = op.split(",")
+      if !op.match(':') and op.match('/')
+        op = 'Atlassian::Cli::Outputters::' + op.gsub('/','::')
+      end
       # TODO: verify the argument right here
       options[:outputter_map][type.to_sym] = op
     end
