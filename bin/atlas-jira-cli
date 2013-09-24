@@ -13,11 +13,15 @@ begin
 end
 
 require 'atlassian/cli/credentials'
-require 'atlassian/cli/outputters/table/jira_issue'
-require 'atlassian/cli/outputters/table/jira_issue_list'
 require 'atlassian/hashifiers/jira_issue'
 require 'atlassian/monkeypatch'
 require 'atlassian/rest/jira/client'
+
+# outputters
+require 'atlassian/cli/outputters/table/jira_issue'
+require 'atlassian/cli/outputters/table/jira_issue_list'
+require 'atlassian/cli/outputters/json/jira_issue'
+require 'atlassian/cli/outputters/json/jira_issue_list'
 
 include Log4r
 
