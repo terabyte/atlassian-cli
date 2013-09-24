@@ -241,7 +241,7 @@ def parse_opts
     end
 
     # TODO: enable partial matching of these, like how we do --editState?
-    o.on('--resolution [resolution name]', "Resolution to use (defaults to Fixed, other options include 'Duplicate' and 'Won't Fix', etc)") do |state|
+    o.on('--resolution [resolution regex]', "Resolution to use (defaults to Fixed, other options include 'Duplicate' and 'Won't Fix', etc - assumes regex and takes the first match it finds)") do |state|
       options[:resolution] = state
     end
 

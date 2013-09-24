@@ -61,7 +61,7 @@ module Atlassian
         # https://answers.atlassian.com/questions/171351/how-to-change-the-status-of-an-issue-via-rest-api
         # and https://docs.atlassian.com/jira/REST/latest/#idp1368336
         # and a lot of perserverence =|
-        def post_transition(issue, new_state, comment_text = nil, resolution_name = nil)
+        def post_transition(issue, new_state, comment_text = nil, resolution_regex = nil)
           # always ensure we are logged in first
           ensure_logged_in
 
@@ -109,13 +109,21 @@ module Atlassian
             }
           end
 
-          if resolution_name
-            json[:fields] = {
-              :resolution => {
-                :name => resolution_name
+          # If provided we need to set the resolution, otherwise we can leave it out
+          if resolution_regex
+            resolution = get_matching_object_by_regex("rest/api/2/resolution", Regexp.new(resolution_regex, Regexp::IGNORECASE))
+
+            if resolution[0].nil?
+              @log.error "Unable to find resolution for #{opts[:priority]}, ignoring!"
+            else
+              json[:fields] = {
+                  :resolution => {
+                    :id => resolution[0]
+                }
               }
-            }
+            end
           end
+
           response = json_post("rest/api/2/issue/#{issue[:key]}/transitions?expand=transitions,fields", json)
           @log.info "Successfully performed transition #{transition_name} on issue #{issue[:key]} from state #{issue[:fields][:status][:name]} to state #{target_name}"
         end
@@ -329,21 +337,12 @@ module Atlassian
 
           # If provided we need to set the priority, otherwise we can leave it out
           if opts[:priority]
-            priorities = json_get("rest/api/2/priority")
-            priority_name = nil
-            priority_id = nil
-            priorities.each do |p|
-              if p[:name].match(Regexp.new(opts[:priority], Regexp::IGNORECASE))
-                @log.debug("Matched priority name #{p[:name]}")
-                priority_name = p[:name]
-                priority_id = p[:id]
-                break
-              end
-            end
-            if priority_name.nil?
+            priority = get_matching_object_by_regex("rest/api/2/priority", Regexp.new(opts[:priority], Regexp::IGNORECASE))
+
+            if priority[0].nil?
               @log.error "Unable to find priority for #{opts[:priority]}, ignoring!"
             else
-              json[:fields][:priority] = { :id => priority_id}
+              json[:fields][:priority] = { :id => priortiy[0]}
             end
           end
 
@@ -455,6 +454,23 @@ module Atlassian
           response = json_delete("rest/api/2/issue/#{key}")
           @log.info "Successfully deleted issue #{key}"
           response
+        end
+
+        # TODO: http://localhost:2990/jira/rest/api/2/resolution
+        # Returns [id, name] for first match found
+        def get_matching_object_by_regex(url, regex)
+          items = json_get(url)
+          item_name = nil
+          item_id = nil
+          items.each do |p|
+            if p[:name].match(regex)
+              @log.debug("Matched item name #{p[:name]} for url #{url}")
+              item_name = p[:name]
+              item_id = p[:id]
+              break
+            end
+          end
+          return [item_id, item_name]
         end
 
         def test_auth()

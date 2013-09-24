@@ -71,7 +71,7 @@ broken up by product.
 ## JIRA
 * JQL Query Pagination
 * Attach files
-* Close as a dupe (ability to set resolution), maybe issue linking
+* issue linking
 
 ## Confluence
 * Fetch raw page, upload raw page
