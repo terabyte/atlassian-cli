@@ -9,32 +9,51 @@ module Atlassian
 
       class Client < Atlassian::Rest::Client
 
+        attr_accessor :auth_success
+
         def initialize(options)
           super(options)
+
+          @auth_success = nil
         end
 
         def jql(query)
+          # always ensure we are logged in first
+          ensure_logged_in
+
           # path, params, headers
           response = json_get("rest/api/2/search", {'jql' => query})
         end
 
         def get_issue_by_id(id)
+          # always ensure we are logged in first
+          ensure_logged_in
+
           response = json_get("rest/api/2/search", {'jql' => "id = #{id}"})
           return response[:issues].andand.first
         end
 
         def get_issue_by_key(key)
+          # always ensure we are logged in first
+          ensure_logged_in
+
           response = json_get("rest/api/2/search", {'jql' => "key = #{key}"})
           return response[:issues].andand.first
         end
 
         # https://developer.atlassian.com/display/JIRADEV/JIRA+REST+API+Example+-+Add+Comment
         def get_comments_for_issue(issue)
+          # always ensure we are logged in first
+          ensure_logged_in
+
           response = json_get("rest/api/2/issue/#{issue[:key]}/comment")
           return response
         end
 
         def post_comment_for_issue(issue, comment)
+          # always ensure we are logged in first
+          ensure_logged_in
+
           response = json_post("rest/api/2/issue/#{issue[:key]}/comment", comment)
           return response
         end
@@ -42,7 +61,10 @@ module Atlassian
         # https://answers.atlassian.com/questions/171351/how-to-change-the-status-of-an-issue-via-rest-api
         # and https://docs.atlassian.com/jira/REST/latest/#idp1368336
         # and a lot of perserverence =|
-        def post_transition(issue, new_state, comment_text = nil, resolution_name = nil)
+        def post_transition(issue, new_state, comment_text = nil, resolution_regex = nil)
+          # always ensure we are logged in first
+          ensure_logged_in
+
           # get list of possible states
           @log.debug "Searching for available transitions for issue #{issue[:key]}"
           response = json_get("rest/api/2/issue/#{issue[:key]}/transitions?expand=transitions,fields")
@@ -87,19 +109,30 @@ module Atlassian
             }
           end
 
-          if resolution_name
-            json[:fields] = {
-              :resolution => {
-                :name => resolution_name
+          # If provided we need to set the resolution, otherwise we can leave it out
+          if resolution_regex
+            resolution = get_matching_object_by_regex("rest/api/2/resolution", Regexp.new(resolution_regex, Regexp::IGNORECASE))
+
+            if resolution[0].nil?
+              @log.error "Unable to find resolution for #{opts[:priority]}, ignoring!"
+            else
+              json[:fields] = {
+                  :resolution => {
+                    :id => resolution[0]
+                }
               }
-            }
+            end
           end
+
           response = json_post("rest/api/2/issue/#{issue[:key]}/transitions?expand=transitions,fields", json)
           @log.info "Successfully performed transition #{transition_name} on issue #{issue[:key]} from state #{issue[:fields][:status][:name]} to state #{target_name}"
         end
 
         # https://developer.atlassian.com/display/JIRADEV/Updating+an+Issue+via+the+JIRA+REST+APIs suggests to use the /editmeta endpoint.  IT LIES.
         def issue_update(issue, edit_opts = {})
+          # always ensure we are logged in first
+          ensure_logged_in
+
 
           json = {
             :update => {}
@@ -248,6 +281,9 @@ module Atlassian
         end
 
         def issue_create(opts)
+          # always ensure we are logged in first
+          ensure_logged_in
+
           @log.debug "Creating issue with arguments #{opts}"
 
           json = {
@@ -277,7 +313,7 @@ module Atlassian
 
           found_issue_type = nil
           match = false
-          createmeta[:projects].first[:issuetypes].each do |type|
+          createmeta[:projects].first[:issuetypes].sort {|a,b| a[:id].to_i <=> b[:id].to_i }.each do |type|
             next if type[:subtask]
 
             @log.debug "Found issuetype: #{type[:name]}"
@@ -285,7 +321,7 @@ module Atlassian
               found_issue_type = type
             end
 
-            if type[:name].match(Regexp.new(opts[:issuetype], Regexp::IGNORECASE))
+            if type[:name].match(Regexp.new(opts[:issuetype] || ".", Regexp::IGNORECASE))
               found_issue_type = type
               match = true
               break
@@ -301,21 +337,12 @@ module Atlassian
 
           # If provided we need to set the priority, otherwise we can leave it out
           if opts[:priority]
-            priorities = json_get("rest/api/2/priority")
-            priority_name = nil
-            priority_id = nil
-            priorities.each do |p|
-              if p[:name].match(Regexp.new(opts[:priority], Regexp::IGNORECASE))
-                @log.debug("Matched priority name #{p[:name]}")
-                priority_name = p[:name]
-                priority_id = p[:id]
-                break
-              end
-            end
-            if priority_name.nil?
+            priority = get_matching_object_by_regex("rest/api/2/priority", Regexp.new(opts[:priority], Regexp::IGNORECASE))
+
+            if priority[0].nil?
               @log.error "Unable to find priority for #{opts[:priority]}, ignoring!"
             else
-              json[:fields][:priority] = { :id => priority_id}
+              json[:fields][:priority] = { :id => priority[0]}
             end
           end
 
@@ -399,7 +426,7 @@ module Atlassian
 
           if opts[:assignee]
             # get the list of assignable people for this issue
-            assignees = json_get("rest/api/2/user/assignable/search?issueKey=#{issue[:key]}&maxResults=2&username=#{URI.escape(edit_opts[:assignee])}")
+            assignees = json_get("rest/api/2/user/assignable/search?project=#{opts[:projectkey]}&maxResults=2&username=#{URI.escape(opts[:assignee])}")
 
             if (assignees.size != 1)
               @log.error "Unable to find UNIQUE assignee for #{edit_opts[:assignee]}, ignoring (try a larger substring, check spelling?)"
@@ -419,11 +446,45 @@ module Atlassian
         end
 
         def issue_delete(key)
+          # always ensure we are logged in first
+          ensure_logged_in
+
           @log.debug "Deleting issue #{key}"
 
           response = json_delete("rest/api/2/issue/#{key}")
           @log.info "Successfully deleted issue #{key}"
           response
+        end
+
+        # TODO: http://localhost:2990/jira/rest/api/2/resolution
+        # Returns [id, name] for first match found
+        def get_matching_object_by_regex(url, regex)
+          items = json_get(url)
+          item_name = nil
+          item_id = nil
+          # sort so we always find the same one, lowest ID first
+          items.sort {|a,b| a[:id].to_i <=> b[:id].to_i}.each do |p|
+            if p[:name].match(regex)
+              @log.debug("Matched item name #{p[:name]} for url #{url}")
+              item_name = p[:name]
+              item_id = p[:id]
+              break
+            end
+          end
+          return [item_id, item_name]
+        end
+
+        def test_auth()
+          unless @auth_success.nil?
+            return @auth_success
+          end
+
+          response = raw_get(@endpoint + "rest/auth/1/session")
+          if response.status.to_i == 200
+            @auth_success = true
+            return true
+          end
+          return false
         end
       end
     end

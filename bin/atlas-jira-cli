@@ -13,9 +13,15 @@ begin
 end
 
 require 'atlassian/cli/credentials'
-require 'atlassian/cli/outputters/jira_issue'
+require 'atlassian/hashifiers/jira_issue'
 require 'atlassian/monkeypatch'
 require 'atlassian/rest/jira/client'
+
+# outputters
+require 'atlassian/cli/outputters/table/jira_issue'
+require 'atlassian/cli/outputters/table/jira_issue_list'
+require 'atlassian/cli/outputters/json/jira_issue'
+require 'atlassian/cli/outputters/json/jira_issue_list'
 
 include Log4r
 
@@ -49,12 +55,16 @@ def parse_opts
     :affectsversions => [],
     :issuetype => nil,
     :projectkey => nil,
-    :outputter_opts => {},
-    # to disable column wrapping, change this to
+    :outputter_map => {},
+    :outputter_opts => {:color => true, :hide_columns => {}},
+    # to disable column wrapping, change this to include
     # :outputter_opts => { :set_width => false },
     # This may be needed to work around a missing feature in terminal-table gem
     # For details, see: https://github.com/terabyte/terminal-table/commit/68815ba7b609478d0b865fffe49987f60a571342
     # The master branch of terabyte's fork of terminal-table gem should always work.
+
+    :username => nil, # handy to set this if you want
+    :password => nil, # but probably NOT this, for security reasons
   }
 
   if File.readable?(File.join(Dir.home, ATLAS_CLI_RC))
@@ -68,7 +78,6 @@ def parse_opts
     options.update(JSON.parse(rc_str).deep_symbolize_keys)
   end
 
-  options[:outputter] = Atlassian::Cli::Outputters::JiraIssue.new(options[:outputter_opts])
   options[:logger] = Logger.new('atlas-jira-cli')
   options[:logger].outputters = Outputter.stdout
   options[:logger].level = Log4r::INFO
@@ -88,11 +97,82 @@ def parse_opts
     o.separator "    By default, atlas-jira-cli will prompt you for a username and password.  You may also store your password in ~/.netrc under machine name atlas-jira-cli.example.com.  This is not advised for security purposes."
     o.separator ""
 
-    o.separator "Options:"
+    o.separator ""
+    o.separator "Generic Options:"
     o.separator ""
 
     o.on('-e', '--endpoint [URL]', 'Endpoint (e.g. https://jira.example.com:2990/jira)') do |e|
       options[:endpoint] = e
+    end
+
+    o.on('--cacert [FILE.pem]', 'cacert file to use for SSL') do |f|
+      options[:cacert] = f
+    end
+
+    o.on('-d', '--debug', 'enable debug output') do
+      options[:debug] = true
+      options[:logger].level = Log4r::DEBUG
+    end
+
+    o.on('-h', '--help', 'Display this screen') do
+      puts o
+      exit
+    end
+
+    o.separator ""
+    o.separator "Output Options:"
+    o.separator ""
+    o.separator "    Known outputters include:"
+    outputters = Atlassian::Cli::Outputters.get_outputters
+    outputters.keys.sort.each do |type|
+      o.separator "\tType #{type.to_s}"
+      outputters[type].each do |op|
+        o.separator "\t\t#{op[1]} (weight: #{op[0]})"
+      end
+    end
+    o.separator ""
+    o.separator "    You can implement your own outputter by extending Atlassian::Cli::Outputters::OutputerBase."
+    o.separator ""
+
+    o.on('-o', '--outputter [TYPE],[CLASS NAME]', "name of outputter class to use (defaults are the Table outputter).  If the outputter is in the Atlassian::Cli::Outputters namespace, you can abbreviate, e.g. 'Atlassian::Cli::Outputters::Table::JiraIssue' becomes 'Table/JiraIssue'.") do |op|
+      type, op = op.split(",")
+      if !op.match(':') and op.match('/')
+        op = 'Atlassian::Cli::Outputters::' + op.gsub('/','::')
+      end
+      # TODO: verify the argument right here
+      options[:outputter_map][type.to_sym] = op
+    end
+
+    o.separator "    For example, `atlas-jira-cli jql 'assignee=admin' --outputter jira_issue_list,Table/JiraIssue` will use the single-issue view on a list of issues"
+
+    o.on('--color true/false', "Use color or not (passed to outputter)") do |c|
+      if c.match(/false/i)
+        puts "false!"
+        options[:outputter_opts][:color] = false
+      end
+    end
+
+
+    # TODO: allow preserving order?
+    # TODO: bad touch?
+    default_columns = Atlassian::Cli::Outputters::Table::JiraIssue::DEFAULT_COLUMN_MAP.keys.sort
+    o.on('--columns comma,separated,list', "Comma-separated list of fields to include in display (defaults are #{default_columns.join(", ")}).  Include 'default' to add default fields to a custom list") do |l|
+      unless options[:columns]
+        options[:columns] = {}
+      end
+      l.split(',').each do |i|
+        if i.match(/defaults?/i)
+          default_columns.each {|x| options[:columns][x.to_sym] = true }
+        else
+          options[:columns][i.to_sym] = true
+        end
+      end
+    end
+
+    o.on('--hide-columns comma,separated,list', "Comma-separated list of fields to hide in display (passed to outputter)") do |h|
+      h.split(',').each do |i|
+        options[:outputter_opts][:hide_columns][i.to_sym] = true
+      end
     end
 
     o.separator ""
@@ -100,17 +180,17 @@ def parse_opts
     o.separator ""
 
     # todo: support editing issue type?
-    o.on('--issueType [REGEX]', "Text matching the name/description of the issue type to create (if not given, lowest ID is used)") do |ct|
+    o.on('--issue-type [REGEX]', "Text matching the name/description of the issue type to create (if not given, lowest ID is used)") do |ct|
       options[:issuetype] = ct
     end
 
-    o.on('--projectKey [KEY]', "Key of the project to create the issue in") do |ct|
+    o.on('--project-key [KEY]', "Key of the project to create the issue in") do |ct|
       # keys are always all-caps and SOME (but not all) rest endpoints are case senstiive.
       options[:projectkey] = ct.upcase
     end
 
     o.separator ""
-    o.separator "Create/Edit Options: (projectKey, issueType, and summary are REQUIRED)"
+    o.separator "Create/Edit Options: (project-key, issue-type, and summary are REQUIRED)"
     o.separator ""
 
     o.on('--summary [TEXT]', "Shorthand for --field summary,\"TEXT\"") do |t|
@@ -133,17 +213,17 @@ def parse_opts
       options[:components] << t
     end
 
-    o.on('--fixversions [+|-][REGEX]', "Add or remove fixversions matching the given regex (may be used multiple times)") do |t|
+    o.on('--fix-versions [+|-][REGEX]', "Add or remove fixversions matching the given regex (may be used multiple times)") do |t|
       options[:fixversions] << t
     end
 
-    o.on('--affectsversions [+|-][REGEX]', "Add or remove fixversions matching the given regex (may be used multiple times)") do |t|
+    o.on('--affects-versions [+|-][REGEX]', "Add or remove fixversions matching the given regex (may be used multiple times)") do |t|
       options[:affectsversions] << t
     end
 
     o.separator "    NOTE: for REGEX starting with a '-' you must do '--flag=-TEXT', '--flag -TEXT' will not parse correctly"
 
-    o.on('--commentText [TEXT]', "Text of the comment to add to the issue") do |ct|
+    o.on('--comment [TEXT]', "Text of the comment to add to the issue") do |ct|
       options[:commentText] = ct
     end
 
@@ -156,59 +236,19 @@ def parse_opts
     o.separator "Transition Options:"
     o.separator ""
 
-    o.on('--editState [new state]', "State to transition the issue to") do |state|
+    o.on('--state [new state]', "State to transition the issue to") do |state|
       options[:editState] = state
     end
 
     # TODO: enable partial matching of these, like how we do --editState?
-    o.on('--resolution [resolution name]', "Resolution to use (defaults to Fixed, other options include 'Duplicate' and 'Won't Fix', etc)") do |state|
+    o.on('--resolution [resolution regex]', "Resolution to use (defaults to Fixed, other options include 'Duplicate' and 'Won't Fix', etc - assumes regex and takes the first match it finds)") do |state|
       options[:resolution] = state
     end
 
-    o.separator ""
-    o.separator "View / Jql Options:"
-    o.separator ""
-
-    default_columns = Atlassian::Cli::Outputters::JiraIssue::DEFAULT_COLUMNS
-    # TODO: allow preserving order?
-    o.on('--columns comma,separated,list', "Comma-separated list of fields to include in display (defaults are #{default_columns.join(',')}.  Include 'default' to add default fields to a custom list") do |l|
-      unless options[:columns]
-        options[:columns] = []
-      end
-      l.split(',').each do |i|
-        if i == "default"
-          default_columns.each {|c| options[:columns] << c}
-        else
-          options[:columns] << i.to_sym
-        end
-      end
-    end
-
-    o.on('--cacert [FILE.pem]', 'cacert file to use for SSL') do |f|
-      options[:cacert] = f
-    end
-
-    o.on('-d', '--debug', 'enable debug output') do
-      options[:debug] = true
-      options[:logger].level = Log4r::DEBUG
-    end
-
-    o.on('-h', '--help', 'Display this screen') do
-      puts o
-      exit
-    end
   end
 
   # this leaves unknown arguments alone
   optparse.parse!
-
-  # do pw after parse so we don't get prompted before showing help
-  options[:username], options[:password] = Atlassian::Cli::Credentials.new().get_credentials()
-
-  # configure outputter
-  if options[:columns]
-    options[:outputter].display_columns = options[:columns]
-  end
 
   # now what should be left is "[command] [...]"
   command = ARGV.shift.andand.to_sym
@@ -239,7 +279,7 @@ def parse_opts
       exit 1
     end
   when :create
-    unless options[:projectkey] && options[:issuetype] && options[:fields][:summary]
+    unless options[:projectkey] && options[:fields][:summary]
       puts optparse
       exit 1
     end
@@ -261,28 +301,54 @@ def get_issue_from_key_or_id(options, client, key_or_id)
   if issue.nil? || issue.empty?
     raise Atlassian::NotFoundError.new("Unable to find issue by key or id #{key_or_id}")
   end
+  if options[:include_comments]
+    issue[:comments] = client.get_comments_for_issue(issue)
+  end
   if options[:debug]
     ap issue
   end
   issue
 end
 
+def display_using_outputter(options, type, data, outputter_opts = {})
+  outputter = nil
+  final_opts = (options[:outputter_opts] || {}).update(outputter_opts)
+  if options[:outputter_map][type].nil?
+   outputter = eval Atlassian::Cli::Outputters.get_default_outputter(type) + ".new(final_opts)"
+  else
+    outputter = eval options[:outputter_map][type] + ".new(final_opts)"
+  end
+  puts outputter.print_object(data)
+end
+
 begin
 
   options = parse_opts
 
+  # XXX TODO: why is empty columns not the same as default?
+  if options[:columns].nil?
+    options[:columns] = Atlassian::Cli::Outputters::Table::JiraIssue::DEFAULT_COLUMN_MAP
+  end
   if options[:debug]
     # yeah, this next line is hawt
     ap options.clone.update(:password => options[:password].andand.gsub(/./, "*"))
   end
 
   client = Atlassian::Rest::Jira::Client.new(options)
+
+  unless client.test_auth
+    # only prompt for pw if we aren't auth'd
+    username, password = Atlassian::Cli::Credentials.new().get_credentials(options[:username], options[:password])
+    client.username = username
+    client.password = password
+  end
+
+
   begin
 
     response = nil
     issue = nil
     issues = nil
-    comments = nil
 
     ####
     ## Main Command Loop
@@ -293,23 +359,26 @@ begin
       if options[:debug]
         ap response
       end
-      issues = response[:issues]
-      puts options[:outputter].display_issues_table(issues)
 
+      hashes = []
+      hashifier = Atlassian::Hashifiers::JiraIssue.new()
+      response[:issues].each do |rest_issue|
+        hashes << hashifier.get_hash(rest_issue)
+      end
+      display_using_outputter(options, :jira_issue_list, hashes, {:display_columns => options[:columns]})
     when :view
       issue = get_issue_from_key_or_id(options, client, options[:key_or_id])
-      # try to get comments if we got an issue
-      if issue
-        comments = client.get_comments_for_issue(issue)[:comments]
-      end
       if options[:debug]
-        ap comments
+        ap issue
       end
-      puts options[:outputter].display_issue_table(issue, comments)
+      hashifier = Atlassian::Hashifiers::JiraIssue.new(:client => client, :include_comments => true)
+      hash = hashifier.get_hash(issue)
+      display_using_outputter(options, :jira_issue, hash, {:display_columns => options[:columns]})
 
     when :viewField
       issue = get_issue_from_key_or_id(options, client, options[:key_or_id])
-      options[:outputter].display_issue_field(issue, options[:onlyfield].downcase.to_sym)
+      # too simple to need an outputter
+      puts issue[options[:onlyfield].downcase.to_sym]
 
     when :comment
       issue = get_issue_from_key_or_id(options, client, options[:key_or_id])
