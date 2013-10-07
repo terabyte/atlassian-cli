@@ -152,7 +152,7 @@ module Atlassian
           # require auth, so httpclient never tries auth unless you tell it to.
           # W T F.
           @extra_headers["Authorization"] = "Basic"
-          unless test_auth 
+          unless test_auth
             raise HttpClientError.new("Unable to authenticate")
           end
           # success, no longer need basic auth
@@ -224,6 +224,9 @@ module Atlassian
       def json_get(path, parameters = {}, headers = {})
         if !headers['Content-Type']
           headers['Content-Type'] = 'application/json'
+        end
+        if !headers['Accept']
+          headers['Accept'] = 'application/json'
         end
 
         uri = @endpoint + path
