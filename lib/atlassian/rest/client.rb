@@ -14,15 +14,7 @@ module Atlassian
         attr_accessor :message
         attr_accessor :status
 
-        def initialize(status)
-          initialize(status, nil, nil)
-        end
-
-        def initialize(status, content)
-          initialize(status, content, nil)
-        end
-
-        def initialize(status, content, message)
+        def initialize(status, content = nil, message = nil)
           @status = status
           @content = content
           @message = message
@@ -35,14 +27,23 @@ module Atlassian
 
       # >= 400
       class HttpError < HttpBaseStatus
+        def initialize(status, content = nil, message = nil)
+          super(status, content, message)
+        end
       end
 
       # 4XX
       class HttpClientError < HttpError
+        def initialize(status, content = nil, message = nil)
+          super(status, content, message)
+        end
       end
 
       # 5XX
       class HttpServerError < HttpError
+        def initialize(status, content = nil, message = nil)
+          super(status, content, message)
+        end
       end
     end
 

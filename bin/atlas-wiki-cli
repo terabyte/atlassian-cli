@@ -1,0 +1,154 @@
+#!/usr/bin/env ruby
+
+require 'andand'
+require 'awesome_print'
+require 'json'
+require 'log4r'
+require 'optparse'
+
+
+begin
+  lib_dir = File.expand_path(File.join(__FILE__, '..', '..', 'lib'))
+  $LOAD_PATH.unshift lib_dir unless $LOAD_PATH.include? lib_dir
+end
+
+require 'atlassian/cli/credentials'
+require 'atlassian/hashifiers/jira_issue'
+require 'atlassian/monkeypatch'
+require 'atlassian/rest/confluence/client'
+
+include Log4r
+
+# Consts
+ATLAS_CLI_RC = ".atlas-cli-rc"
+VALID_COMMANDS = {
+  :cat => "spit out a raw wiki page",
+}
+
+def parse_opts
+
+  # defaults overridable via ~/.atlas-cli-rc
+  options = {
+    :endpoint => "http://localhost:1990/confluence",
+    :debug => nil,
+    :cacert => nil,
+    :username => nil, # handy to set this if you want
+    :password => nil, # but probably NOT this, for security reasons
+  }
+
+  if File.readable?(File.join(Dir.home, ATLAS_CLI_RC))
+    rc_str = ""
+    File.open(File.join(Dir.home, ATLAS_CLI_RC)) do |f|
+      f.each_line do |l|
+        next if l.match(/^\s*\/\//)
+        rc_str = rc_str + l.chomp
+      end
+    end
+    options.update(JSON.parse(rc_str).deep_symbolize_keys)
+  end
+
+  options[:logger] = Logger.new('atlas-wiki-cli')
+  options[:logger].outputters = Outputter.stdout
+  options[:logger].level = Log4r::INFO
+
+  optparse = OptionParser.new do |o|
+    o.banner = "Usage: atlas-wiki-cli [command] [options]"
+
+    o.separator ""
+    o.separator "Commands:"
+    VALID_COMMANDS.keys.sort.each do |k|
+      o.separator sprintf("    %10s - %s", k.to_s, VALID_COMMANDS[k])
+    end
+
+    o.separator ""
+    o.separator "Authentication:"
+    o.separator ""
+    o.separator "    By default, atlas-wiki-cli will prompt you for a username and password.  You may also store your password in ~/.netrc under machine name atlas-jira-cli.example.com.  This is not advised for security purposes."
+    o.separator ""
+
+    o.separator ""
+    o.separator "Generic Options:"
+    o.separator ""
+
+    o.on('-e', '--endpoint [URL]', 'Endpoint (e.g. https://wiki.example.com:1990/confluence)') do |e|
+      options[:endpoint] = e
+    end
+
+    o.on('--cacert [FILE.pem]', 'cacert file to use for SSL') do |f|
+      options[:cacert] = f
+    end
+
+    o.on('-d', '--debug', 'enable debug output') do
+      options[:debug] = true
+      options[:logger].level = Log4r::DEBUG
+    end
+
+    o.on('-h', '--help', 'Display this screen') do
+      puts o
+      exit
+    end
+  end
+
+  # this leaves unknown arguments alone
+  optparse.parse!
+
+  # now what should be left is "[command] [...]"
+  command = ARGV.shift.andand.to_sym
+  options[:command] = command
+  case options[:command]
+  when :cat
+    unless options[:id] = ARGV.shift
+      puts optparse
+      exit 1
+    end
+  else
+    puts optparse
+    exit 1
+  end
+  return options
+end
+
+begin
+
+  options = parse_opts
+
+  if options[:debug]
+    # yeah, this next line is hawt
+    ap options.clone.update(:password => options[:password].andand.gsub(/./, "*"))
+  end
+
+  client = Atlassian::Rest::Confluence::Client.new(options)
+
+  unless client.test_auth
+    # only prompt for pw if we aren't auth'd
+    username, password = Atlassian::Cli::Credentials.new().get_credentials(options[:username], options[:password])
+    client.username = username
+    client.password = password
+  end
+
+
+  begin
+
+    response = nil
+
+    ####
+    ## Main Command Loop
+    ####
+    case options[:command]
+    when :cat
+      response = client.get_page_by_id(options[:id])
+      if options[:debug]
+        ap response
+      end
+
+      # TODO: display
+    else
+      raise "ERROR: unhandled command #{options[:command]}"
+    end
+  rescue Atlassian::Rest::HttpStatus::HttpError => e
+    puts "Got error: " + e.to_s
+    ap e.content
+    exit 1
+  end
+end
+
