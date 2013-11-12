@@ -73,6 +73,8 @@ broken up by product.
 * Attach files
 * issue linking
 * edit issue type does not work
+* move issue to other projects
+* list components, priorities, assignees, etc.
 
 ## Confluence
 * Fetch raw page, upload raw page
