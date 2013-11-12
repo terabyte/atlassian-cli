@@ -20,7 +20,7 @@ require 'atlassian/rest/confluence/client'
 include Log4r
 
 # Consts
-ATLAS_CLI_RC = ".atlas-cli-rc"
+ATLAS_CLI_RC = ".atlas-wiki-rc"
 VALID_COMMANDS = {
   :cat => "spit out a raw wiki page",
 }
@@ -67,6 +67,14 @@ def parse_opts
     o.separator ""
 
     o.separator ""
+    o.separator "Wiki Options:"
+    o.separator ""
+
+    o.on('--id [id]', 'ID of the content to operate on') do |i|
+      options[:id] = i
+    end
+
+    o.separator ""
     o.separator "Generic Options:"
     o.separator ""
 
@@ -95,9 +103,10 @@ def parse_opts
   # now what should be left is "[command] [...]"
   command = ARGV.shift.andand.to_sym
   options[:command] = command
+
   case options[:command]
   when :cat
-    unless options[:id] = ARGV.shift
+    unless options[:id]
       puts optparse
       exit 1
     end
