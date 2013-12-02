@@ -94,7 +94,10 @@ def parse_opts
     o.separator ""
     o.separator "Authentication:"
     o.separator ""
-    o.separator "    By default, atlas-jira-cli will prompt you for a username and password.  You may also store your password in ~/.netrc under machine name atlas-jira-cli.example.com.  This is not advised for security purposes."
+    o.separator "    By default, atlas-jira-cli will prompt you for a username and password.  You may also store your password (and username, endpoint, and cacert) in ~/.atlas-cli-rc."
+    o.on('--stdin-auth', 'Read credentials from stdin, of form "username=foo\npassword=bar\n"') do |ct|
+      options.update(Hash[*STDIN.read.split(/[=\n]/)].deep_symbolize_keys)
+    end
     o.separator ""
 
     o.separator ""
