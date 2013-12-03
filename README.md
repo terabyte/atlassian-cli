@@ -76,6 +76,7 @@ broken up by product.
 * edit issue type does not work
 * move issue to other projects
 * list components, priorities, assignees, etc.
+* issue labels
 
 ## Confluence
 * Fetch raw page, upload raw page
