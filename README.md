@@ -69,6 +69,7 @@ broken up by product.
 * Create new issue with no component/type, try to edit it, profit?
 
 ## JIRA
+* Have status include resolution if status = closed
 * Create Components
 * List summary (rows returned)
 * Change Issue Type
