@@ -69,12 +69,16 @@ broken up by product.
 * Create new issue with no component/type, try to edit it, profit?
 
 ## JIRA
-* JQL Query Pagination
+* Have status include resolution if status = closed
+* Create Components
+* List summary (rows returned)
+* Change Issue Type
+* Move issue
 * Attach files
-* issue linking
-* edit issue type does not work
-* move issue to other projects
+* Issue linking
+* JQL Query Pagination
 * list components, priorities, assignees, etc.
+* issue labels
 
 ## Confluence
 * Fetch raw page, upload raw page
