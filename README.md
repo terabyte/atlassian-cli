@@ -72,7 +72,7 @@ broken up by product.
 * Have status include resolution if status = closed
 * Create Components
 * List summary (rows returned)
-* Support sub-tasks
+* Support converting regular issues to sub-tasks (blocked by https://jira.atlassian.com/browse/JRA-27893)
 * Move issue
 * Attach files
 * Issue linking

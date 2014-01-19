@@ -38,6 +38,8 @@ module Atlassian
           ensure_logged_in
 
           response = json_get("rest/api/2/search", {'jql' => "key = #{key}"})
+          #ap response[:issues].first[:fields][:parent]
+          #exit 1
           return response[:issues].andand.first
         end
 
@@ -215,11 +217,23 @@ module Atlassian
               end
             end
 
-            # XXX TODO: handle subtask ?  type is a subtask if issuetype[:subtask] => true
             if match
               json[:fields] = {} if json[:fields].nil?
               json[:fields][:issuetype] = { :id => found_issue_type[:id] }
+              # XXX: Note that if the issue was a non-sub-task and we are
+              # converting to a sub-task type, the call will fail (with a very
+              # unhelpful error message "Issue type is a sub-task but parent
+              # issue key or id not specified.").  This is because the REST API
+              # does not support this.  See:
+              # https://jira.atlassian.com/browse/JRA-27893
+              # Leaving this stuff in here anyways in case they ever fix it,
+              # and also so we can re-parent existing subtasks, or switch
+              # between two issue types where both are subtask or non-subtask.
               @log.debug("Matched issue type #{found_issue_type[:name]} with regex #{edit_opts[:issuetype]}")
+              if !edit_opts[:parent].nil?
+                @log.debug("Including parent key #{edit_opts[:parent]}")
+                json[:fields][:parent] = { :key => edit_opts[:parent] }
+              end
             else
               raise Atlassian::IllegalArgumentError.new("Unable to find matching issue type for regex #{edit_opts[:issuetype]}")
             end
@@ -336,10 +350,11 @@ module Atlassian
             raise Atlassian::IllegalArgumentError.new("No projects found for key #{opts[:projectkey]}")
           end
 
+          @log.debug("ISSUE TYPE: #{opts[:issuetype]}")
           found_issue_type = nil
           match = false
           createmeta[:projects].first[:issuetypes].sort {|a,b| a[:id].to_i <=> b[:id].to_i }.each do |type|
-            next if type[:subtask]
+            next if opts[:parent].nil? && type[:subtask]
 
             @log.debug "Found issuetype: #{type[:name]}"
             if found_issue_type.nil? || (found_issue_type && found_issue_type[:id] > type[:id])
@@ -354,6 +369,9 @@ module Atlassian
           end
 
           json[:fields][:issuetype] = { :id => found_issue_type[:id] }
+          if found_issue_type[:subtask]
+            json[:fields][:parent] = { :key => opts[:parent] }
+          end
           if match
             @log.debug("Matched issue type #{found_issue_type[:name]} with regex #{opts[:issuetype]}")
           else

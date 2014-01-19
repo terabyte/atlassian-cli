@@ -182,11 +182,6 @@ def parse_opts
     o.separator "Create Options:"
     o.separator ""
 
-    # todo: support editing issue type?
-    o.on('--issue-type [REGEX]', "Text matching the name/description of the issue type to create (if not given, lowest ID is used)") do |ct|
-      options[:issuetype] = ct
-    end
-
     o.on('--project-key [KEY]', "Key of the project to create the issue in") do |ct|
       # keys are always all-caps and SOME (but not all) rest endpoints are case senstiive.
       options[:projectkey] = ct.upcase
@@ -222,6 +217,14 @@ def parse_opts
 
     o.on('--affects-versions [+|-][REGEX]', "Add or remove fixversions matching the given regex (may be used multiple times)") do |t|
       options[:affectsversions] << t
+    end
+
+    o.on('--issue-type [REGEX]', "Text matching the name/description of the issue type (if not given for create, lowest ID is used)") do |ct|
+      options[:issuetype] = ct
+    end
+
+    o.on('--parent [KEY]', "Issue which is the parent of this issue (only applicable to Sub-Task types)") do |key|
+      options[:parent] = key
     end
 
     o.separator "    NOTE: for REGEX starting with a '-' you must do '--flag=-TEXT', '--flag -TEXT' will not parse correctly"
@@ -408,6 +411,7 @@ begin
         :priority =>options[:priority],
         :commentText => options[:commentText],
         :issuetype => options[:issuetype],
+        :parent => options[:parent],
       }
 
       response = client.issue_update(issue, edit_opts)
@@ -425,6 +429,7 @@ begin
         :priority =>options[:priority],
         :projectkey => options[:projectkey],
         :issuetype => options[:issuetype],
+        :parent => options[:parent],
       }
 
       response = client.issue_create(create_opts)
