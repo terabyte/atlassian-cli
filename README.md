@@ -72,7 +72,7 @@ broken up by product.
 * Have status include resolution if status = closed
 * Create Components
 * List summary (rows returned)
-* Change Issue Type
+* Support sub-tasks
 * Move issue
 * Attach files
 * Issue linking

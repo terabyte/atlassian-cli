@@ -200,6 +200,31 @@ module Atlassian
             end
           end
 
+          # If we are updating issuetype, need to fetch the possibilities
+          if !edit_opts[:issuetype].empty?
+            found_issue_type = nil
+            match = false
+            issuetypes = json_get("rest/api/2/issue/createmeta?projectKeys=#{issue[:fields][:project][:key]}")[:projects].first[:issuetypes]
+            issuetypes.sort {|a,b| a[:id].to_i <=> b[:id].to_i }.each do |issuetype|
+              @log.debug "Found issuetype: #{issuetype[:name]}"
+
+              if issuetype[:name].match(Regexp.new(edit_opts[:issuetype] || ".", Regexp::IGNORECASE))
+                found_issue_type = issuetype
+                match = true
+                break
+              end
+            end
+
+            # XXX TODO: handle subtask ?  type is a subtask if issuetype[:subtask] => true
+            if match
+              json[:fields] = {} if json[:fields].nil?
+              json[:fields][:issuetype] = { :id => found_issue_type[:id] }
+              @log.debug("Matched issue type #{found_issue_type[:name]} with regex #{edit_opts[:issuetype]}")
+            else
+              raise Atlassian::IllegalArgumentError.new("Unable to find matching issue type for regex #{edit_opts[:issuetype]}")
+            end
+          end
+
           # If we are updating fixversions, need to fetch the possibilities
           if !edit_opts[:fixversions].empty?
             # create the container
