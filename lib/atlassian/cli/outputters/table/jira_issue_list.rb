@@ -44,9 +44,9 @@ module Atlassian
               issues = [issues]
             end
 
+            count = issues.length
             if issues.empty?
-              # XXX TODO: better messaging?
-              return
+              return "0 rows returned"
             end
 
             table = Terminal::Table.new do |t|
@@ -72,7 +72,7 @@ module Atlassian
                   end
                   t << row
                 end
-            end
+            end.to_s + "#{count} rows returned"
           end
         end # class JiraIssueList
       end
