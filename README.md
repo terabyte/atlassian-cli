@@ -69,7 +69,6 @@ broken up by product.
 * Create new issue with no component/type, try to edit it, profit?
 
 ## JIRA
-* Have status include resolution if status = closed
 * Create Components
 * List summary (rows returned)
 * Support converting regular issues to sub-tasks (blocked by https://jira.atlassian.com/browse/JRA-27893)
