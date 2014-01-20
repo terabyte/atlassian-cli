@@ -71,7 +71,7 @@ broken up by product.
 ## JIRA
 * Create Components
 * Support converting regular issues to sub-tasks (blocked by https://jira.atlassian.com/browse/JRA-27893)
-* Move issue
+* Move issue (also not supported by the rest API: https://answers.atlassian.com/questions/132846/how-move-issue-to-another-project-via-rest-api)
 * Attach files
 * Issue linking
 * JQL Query Pagination
