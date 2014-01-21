@@ -61,13 +61,29 @@ module Atlassian
                 header = header.blue if @color
                 t << [{:value => header, :alignment => :right}, format_field(hash, key)]
               end
-              # list comments at the end
+              # list comments next
+              if !hash[:comments].andand.empty?
+                t << :separator
+                # TODO: figure out how to make this span two columns?
+                t << [{:value => "Comments".blue, :alignment => :center}]
+              end
               hash[:comments].andand.each do |c|
 
                 name = format_field(c, :commentAuthor)
                 body = format_field(c, :body)
                 t << :separator
-                  t << [{:value => name, :alignment => :center}, body]
+                t << [{:value => name, :alignment => :right}, body]
+              end
+              # list subtasks if not empty
+              if !hash[:subtasks].andand.empty?
+                t << :separator
+                # TODO: figure out how to make this span two columns?
+                t << [{:value => "Sub-Tasks".blue, :alignment => :center}]
+              end
+              hash[:subtasks].andand.each do |st|
+                key = format_field(st, :key)
+                summary = format_field(st, :summary)
+                t << [{:value => key, :alignment => :right}, summary]
               end
             end
           end
