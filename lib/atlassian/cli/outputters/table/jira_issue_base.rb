@@ -36,7 +36,7 @@ module Atlassian
 
           COLUMN_FORMATTING_MAP = {
             :id => Proc.new {|f,hash,key| f.color ? hash[key].to_s.green : hash[key].to_s },
-            :key => Proc.new {|f,hash,key| f.color ? hash[key].to_s.green : hash[key].to_s },
+            :key => Proc.new {|f,hash,key| key = (hash[:parent].nil? ? hash[key] : hash[key] + " (sub-task of #{hash[:parent]})"); f.color ? key.to_s.green : key.to_s },
             :name => Proc.new {|f,hash,key| f.color ? hash[key].to_s.greenish : hash[key].to_s },
             :reporter => Proc.new {|f,hash,key| f.color ? hash[key].to_s.greenish : hash[key].to_s },
             :assignee => Proc.new {|f,hash,key| f.color ? hash[key].to_s.greenish : hash[key].to_s },

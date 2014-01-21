@@ -29,6 +29,7 @@ module Atlassian
         :components => Proc.new {|s,issue| issue[:fields].andand[:components].andand.collect {|x| x[:name] } },
         :default => Proc.new {|s,issue,colname| issue[:fields].andand[colname] || nil },
         :type => Proc.new {|s,issue,colname| issue[:fields].andand[:issuetype].andand[:name] },
+        :parent => Proc.new {|s,issue,colname| issue[:fields].andand[:parent].andand[:key] },
         :comments => Proc.new {|s,issue| s.include_comments ? s.client.get_comments_for_issue(issue).andand[:comments].collect {|x| { :displayName => x[:author][:displayName], :name => x[:author][:name], :body => x[:body], :created => x[:created] } } : nil },
       }
 
