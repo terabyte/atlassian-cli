@@ -65,7 +65,7 @@ module Atlassian
               if !hash[:links].andand.empty?
                 t << :separator
                 # TODO: figure out how to make this span two columns?
-                t << [{:value => "Issue Links".blue, :alignment => :center}]
+                t << [{:value => "Issue Links".blue, :alignment => :center}, ""]
               end
               hash[:links].andand.each do |link|
                 # determine if incoming or outgoing
@@ -102,7 +102,7 @@ module Atlassian
               if !hash[:attachments].andand.empty?
                 t << :separator
                 # TODO: figure out how to make this span two columns?
-                t << [{:value => "Attachments".blue, :alignment => :center}]
+                t << [{:value => "Attachments".blue, :alignment => :center}, ""]
                 hash[:attachments].andand.each do |at|
                   name = format_field(at, :commentAuthor)
                   url = format_field(at, :attachmentUrl)
@@ -114,7 +114,7 @@ module Atlassian
               if !hash[:subtasks].andand.empty?
                 t << :separator
                 # TODO: figure out how to make this span two columns?
-                t << [{:value => "Sub-Tasks".blue, :alignment => :center}]
+                t << [{:value => "Sub-Tasks".blue, :alignment => :center}, ""]
               end
               hash[:subtasks].andand.each do |st|
                 key = format_field(st, :key)
@@ -126,7 +126,7 @@ module Atlassian
               if !hash[:comments].andand.empty?
                 t << :separator
                 # TODO: figure out how to make this span two columns?
-                t << [{:value => "Comments".blue, :alignment => :center}]
+                t << [{:value => "Comments".blue, :alignment => :center}, ""]
               end
               hash[:comments].andand.each do |c|
 
