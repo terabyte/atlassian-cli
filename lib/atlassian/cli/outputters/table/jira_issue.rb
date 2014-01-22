@@ -61,6 +61,43 @@ module Atlassian
                 header = header.blue if @color
                 t << [{:value => header, :alignment => :right}, format_field(hash, key)]
               end
+              # list links next
+              if !hash[:links].andand.empty?
+                t << :separator
+                # TODO: figure out how to make this span two columns?
+                t << [{:value => "Issue Links".blue, :alignment => :center}]
+              end
+              hash[:links].andand.each do |link|
+                # determine if incoming or outgoing
+                typename = link[:type][:name]
+                leftkey = nil
+                rightkey = nil
+                linktext = nil
+                otherkey = nil
+                othersummary = nil
+                otherstatus = nil
+                if link[:inwardIssue]
+                  rightkey = format_field(link[:inwardIssue], :key)
+                  # strip out parent so we don't get "TEST-1 (sub-task of TEST-2) here - it is already displayed elsewhere
+                  leftkey = format_field(hash.reject {|k,v| k == :parent }, :key)
+                  otherkey = rightkey
+                  linktext = link[:type][:inwardtext]
+
+                  othersumamry = link[:inwardIssue][:summary] # TODO: maybe format_field(link[:outwardIssue], :sumamry)
+                  otherstatus = format_field(link[:inwardIssue], :status)
+                elsif link[:outwardIssue]
+                  # strip out parent so we don't get "TEST-1 (sub-task of TEST-2) here - it is already displayed elsewhere
+                  leftkey = format_field(hash.reject {|k,v| k == :parent }, :key)
+                  rightkey = format_field(link[:outwardIssue], :key)
+                  otherkey = rightkey
+                  linktext = link[:type][:outwardtext]
+
+                  othersumamry = link[:outwardIssue][:summary] # TODO: maybe format_field(link[:outwardIssue], :sumamry)
+                  otherstatus = format_field(link[:outwardIssue], :status)
+                end
+                t << [{:value => "#{leftkey} #{linktext} #{rightkey}", :alignment => :right}, "#{otherkey} (#{otherstatus}): #{othersumamry}"]
+              end
+
               # list comments next
               if !hash[:comments].andand.empty?
                 t << :separator
@@ -74,6 +111,7 @@ module Atlassian
                 t << :separator
                 t << [{:value => name, :alignment => :right}, body]
               end
+
               # list subtasks if not empty
               if !hash[:subtasks].andand.empty?
                 t << :separator

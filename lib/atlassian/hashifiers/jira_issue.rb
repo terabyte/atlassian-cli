@@ -31,7 +31,8 @@ module Atlassian
         :type => Proc.new {|s,issue,colname| issue[:fields].andand[:issuetype].andand[:name] },
         :parent => Proc.new {|s,issue,colname| issue[:fields].andand[:parent].andand[:key] },
         :subtasks => Proc.new {|s,issue,colname| subtasks = []; issue[:fields].andand[:subtasks].andand.each {|st| subtasks << s.get_hash(st) }; subtasks },
-        :comments => Proc.new {|s,issue| s.include_comments ? s.client.get_comments_for_issue(issue).andand[:comments].collect {|x| { :displayName => x[:author][:displayName], :name => x[:author][:name], :body => x[:body], :created => x[:created] } } : nil },
+        :links => Proc.new {|s,issue,colname| links = []; issue[:fields].andand[:issuelinks].andand.each {|is| links << s.parse_link(is) }; links },
+        :comments => Proc.new {|s,issue| s.include_comments ? s.client.get_comments_for_issue(issue).andand[:comments].andand.collect {|x| { :displayName => x[:author][:displayName], :name => x[:author][:name], :body => x[:body], :created => x[:created] } } : nil },
       }
 
       def initialize(options = {})
@@ -55,6 +56,17 @@ module Atlassian
           issue_hash[col] = ISSUE_COLUMN_MAP[col].call(self,rest_issue)
         end
         return issue_hash
+      end
+
+      def parse_link(rest_link)
+        #ap rest_link
+        #exit 1
+        link_hash = {}
+        link_hash[:id] = rest_link[:id]
+        link_hash[:type] = { :id => rest_link[:type][:id], :name => rest_link[:type][:name], :inwardtext => rest_link[:type][:inward], :outwardtext => rest_link[:type][:outward] }
+        link_hash[:inwardIssue] = self.get_hash(rest_link[:inwardIssue]) if rest_link[:inwardIssue]
+        link_hash[:outwardIssue] = self.get_hash(rest_link[:outwardIssue]) if rest_link[:outwardIssue]
+        return link_hash
       end
     end
   end
