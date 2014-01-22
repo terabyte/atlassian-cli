@@ -76,6 +76,7 @@ broken up by product.
 * JQL Query Pagination
 * list components, priorities, assignees, etc.
 * issue labels
+* Selectively get only fields we need (PERF)
 
 ## Confluence
 * Fetch raw page, upload raw page

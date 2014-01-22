@@ -22,25 +22,23 @@ module Atlassian
           ensure_logged_in
 
           # path, params, headers
-          response = json_get("rest/api/2/search", {'jql' => query})
+          response = json_get("rest/api/2/search", {'jql' => query, :fields => "*all,-comment"})
         end
 
         def get_issue_by_id(id)
           # always ensure we are logged in first
           ensure_logged_in
 
-          response = json_get("rest/api/2/search", {'jql' => "id = #{id}"})
-          return response[:issues].andand.first
+          response = json_get("rest/api/2/issue/#{id}", {:fields => "*all,-comment"})
+          return response
         end
 
         def get_issue_by_key(key)
           # always ensure we are logged in first
           ensure_logged_in
 
-          response = json_get("rest/api/2/search", {'jql' => "key = #{key}"})
-          #ap response[:issues].first[:fields][:parent]
-          #exit 1
-          return response[:issues].andand.first
+          response = json_get("rest/api/2/issue/#{key}", {:fields => "*all,-comment"})
+          return response
         end
 
         # https://developer.atlassian.com/display/JIRADEV/JIRA+REST+API+Example+-+Add+Comment
