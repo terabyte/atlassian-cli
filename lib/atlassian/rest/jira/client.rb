@@ -564,6 +564,41 @@ module Atlassian
           @log.info "Successfully created attachment #{at[:filename]} with id #{at[:id]} size #{at[:size]} mimetype #{at[:mimeType]}"
         end
 
+        def attachment_delete(attachment_id, opts)
+          # always ensure we are logged in first
+          ensure_logged_in
+
+          response = json_delete("rest/api/2/attachment/#{attachment_id}")
+          if opts[:debug]
+            ap response
+          end
+        end
+
+        def attachment_delete_by_issue_and_filename(issue_id_or_key, filename, opts)
+          # always ensure we are logged in first
+          ensure_logged_in
+
+          @log.debug "Deleting all attachment for issue #{issue_id_or_key} with filename matching #{filename}"
+
+          issue = nil
+          if issue_id_or_key.match(/^\d+$/)
+            issue = get_issue_by_id(issue_id_or_key)
+          else
+            # already raises in case of error
+            issue = get_issue_by_key(issue_id_or_key)
+          end
+
+          issue[:fields][:attachment].each do |at|
+            next unless at[:filename].match(filename)
+
+            @log.info "Found attachment id #{at[:id]}, deleting"
+            response = json_delete("rest/api/2/attachment/#{at[:id]}")
+            if opts[:debug]
+              ap response
+            end
+          end
+        end
+
         def issue_delete(key)
           # always ensure we are logged in first
           ensure_logged_in

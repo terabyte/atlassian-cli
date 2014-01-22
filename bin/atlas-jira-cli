@@ -39,6 +39,7 @@ VALID_COMMANDS = {
   :link => "Create an issue link",
   :delete_link => "Delete an issue link",
   :attachment => "Create/Update an attachment on an issue",
+  :delete_attachment => "Delete an attachment on an issue (requires issue key AND --filename, OR --id [attachment id]",
 }
 
 def parse_opts
@@ -274,11 +275,15 @@ def parse_opts
     o.separator "Attachment Options:"
     o.separator ""
 
-    o.on('--path [path]', "Path to file to attach") do |fn|
+    o.on('--path [path]', "Path to file to attach (required for create)") do |fn|
       options[:path] = fn
     end
 
-    o.on('--filename [name]', "Name to use for attachment (if not given, /path/to/foo.txt becomes 'foo.txt')") do |fn|
+    o.on('--id [id]', "ID of the attachment to delete") do |fn|
+      options[:id] = fn
+    end
+
+    o.on('--filename [name]', "The filename of the attachment to delete") do |fn|
       options[:filename] = fn
     end
   end
@@ -331,6 +336,12 @@ def parse_opts
     end
   when :attachment
     unless (options[:key_or_id] = ARGV.shift) && options[:path]
+      puts optparse
+      exit 1
+    end
+  when :delete_attachment
+    options[:key_or_id] = ARGV.shift
+    unless (options[:key_or_id] && options[:filename]) || options[:id]
       puts optparse
       exit 1
     end
@@ -502,6 +513,17 @@ begin
 
     when :attachment
       response = client.attachment_create(options[:key_or_id], options)
+      if options[:debug]
+        ap response
+      end
+
+    when :delete_attachment
+      response = nil
+      if options[:key_or_id] && options[:filename]
+        response = client.attachment_delete_by_issue_and_filename(options[:key_or_id], options[:filename], options)
+      else
+        response = client.attachment_delete(options[:id], options)
+      end
       if options[:debug]
         ap response
       end
