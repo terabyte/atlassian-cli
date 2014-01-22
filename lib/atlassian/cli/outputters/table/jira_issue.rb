@@ -98,6 +98,18 @@ module Atlassian
                 t << [{:value => "#{leftkey} #{linktext} #{rightkey}", :alignment => :right}, "#{otherkey} (#{otherstatus}): #{othersumamry}"]
               end
 
+              # list attachments if not empty
+              if !hash[:attachments].andand.empty?
+                t << :separator
+                # TODO: figure out how to make this span two columns?
+                t << [{:value => "Attachments".blue, :alignment => :center}]
+                hash[:attachments].andand.each do |at|
+                  name = format_field(at, :commentAuthor)
+                  url = format_field(at, :attachmentUrl)
+                  t << [{:value => name, :alignment => :right}, url]
+                end
+              end
+
               # list subtasks if not empty
               if !hash[:subtasks].andand.empty?
                 t << :separator

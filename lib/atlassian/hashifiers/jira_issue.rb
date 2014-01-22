@@ -32,6 +32,7 @@ module Atlassian
         :parent => Proc.new {|s,issue,colname| issue[:fields].andand[:parent].andand[:key] },
         :subtasks => Proc.new {|s,issue,colname| subtasks = []; issue[:fields].andand[:subtasks].andand.each {|st| subtasks << s.get_hash(st) }; subtasks },
         :links => Proc.new {|s,issue,colname| links = []; issue[:fields].andand[:issuelinks].andand.each {|is| links << s.parse_link(is) }; links },
+        :attachments => Proc.new {|s,issue| attachments = []; issue[:fields].andand[:attachment].andand.each {|at| attachments << { :id => at[:id], :filename => at[:filename], :created => at[:created], :size => at[:size], :name => at[:author][:name], :displayName => at[:author][:displayName], :mimetype => at[:mimeType], :url => at[:content], :thumburl => at[:thumbnail]} }; attachments },
         :comments => Proc.new {|s,issue| s.include_comments ? s.client.get_comments_for_issue(issue).andand[:comments].andand.collect {|x| { :displayName => x[:author][:displayName], :name => x[:author][:name], :body => x[:body], :created => x[:created] } } : nil },
       }
 

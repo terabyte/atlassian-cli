@@ -56,7 +56,7 @@ module Atlassian
             :resolution => Proc.new {|f,hash,key| f.color ? hash[key].to_s.red : hash[key].to_s },
             # yeah, this one is crazy because it formats the non-flat comment structure
             :commentAuthor => Proc.new {|f,hash,key| n = hash[:displayName].to_s; un = COLUMN_FORMATTING_MAP[:name].call(f,hash,:name); d = COLUMN_FORMATTING_MAP[:created].call(f,hash,:created); if f.color then n = n.yellowish; end; n + " (" + un + ")\n" + d },
-            #:commentAuthor => Proc.new {|f,hash,key| n = hash[:displayName].to_s.yellowish + " (" + COLUMN_FORMATTING_MAP[:name].call(f,hash,:name) + ")\n" + COLUMN_FORMATTING_MAP[:created].call(f,hash,:created) },
+            :attachmentUrl => Proc.new {|f,hash,key| "#{f.color ? hash[:url].to_s.yellowish : hash[:url]} (#{f.color ? hash[:mimetype].to_s.red : hash[:mimetype]})" },
           }
 
           # TODO: is this a special case?
