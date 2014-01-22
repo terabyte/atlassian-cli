@@ -488,6 +488,43 @@ module Atlassian
           response
         end
 
+        def issue_link_create(opts)
+          # always ensure we are logged in first
+          ensure_logged_in
+
+          @log.debug "Creating issue link with arguments #{opts}"
+
+          types = json_get("rest/api/2/issueLinkType")[:issueLinkTypes]
+
+          json = {
+            :inwardIssue => { :key => opts[:inwardIssueKey] },
+            :outwardIssue => { :key => opts[:outwardIssueKey] },
+          }
+
+          if opts[:commentText]
+            json[:comment] = { :body => opts[:commentText] }
+          end
+
+          # figure out link type
+          linktype = nil
+          types.each do |type|
+            if type[:name].match(Regexp.new(opts[:linktype], Regexp::IGNORECASE))
+              @log.debug "Found issue type #{type[:name]}"
+              linktype = type
+              break
+            end
+          end
+          if linktype.nil?
+            raise Atlassian::IllegalArgumentError.new("No links found that match the regex #{opts[:linktype]}")
+          end
+
+          json[:type] = { :id => linktype[:id] }
+
+          response = json_post("rest/api/2/issueLink", json)
+
+          @log.info "Successfully created issue link #{opts[:outwardIssueKey]} #{linktype[:inward]} #{opts[:inwardIssueKey]}"
+        end
+
         def issue_delete(key)
           # always ensure we are logged in first
           ensure_logged_in

@@ -36,6 +36,7 @@ VALID_COMMANDS = {
   :edit => "Edit fields of an existing issue (supplied as a bare argument",
   :create => "Create an issue",
   :delete => "Delete an issue (issue key supplied as a bare argument)",
+  :link => "Create/delete an issue link",
 }
 
 def parse_opts
@@ -251,6 +252,21 @@ def parse_opts
       options[:resolution] = state
     end
 
+    o.separator ""
+    o.separator "Issue Linking Options:"
+    o.separator ""
+
+    o.on('--from [outward issue key]', "Issue to link from") do |key|
+      options[:outwardIssueKey] = key
+    end
+
+    o.on('--to [inward issue key]', "Issue to link to") do |key|
+      options[:inwardIssueKey] = key
+    end
+
+    o.on('--link-type [regex]', "Regex for link type name (first match used)") do |lt|
+      options[:linktype] = lt
+    end
   end
 
   # this leaves unknown arguments alone
@@ -281,6 +297,11 @@ def parse_opts
     end
   when :comment
     unless (options[:key_or_id] = ARGV.shift) && options[:commentText]
+      puts optparse
+      exit 1
+    end
+  when :link
+    unless options[:outwardIssueKey] && options[:inwardIssueKey] && options[:linktype]
       puts optparse
       exit 1
     end
@@ -396,6 +417,12 @@ begin
     when :transition
       issue = get_issue_from_key_or_id(options, client, options[:key_or_id])
       response = client.post_transition(issue, options[:editState], options[:commentText], options[:resolution])
+      if options[:debug]
+        ap response
+      end
+
+    when :link
+      response = client.issue_link_create(options)
       if options[:debug]
         ap response
       end
