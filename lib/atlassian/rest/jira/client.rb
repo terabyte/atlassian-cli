@@ -525,6 +525,29 @@ module Atlassian
           @log.info "Successfully created issue link #{opts[:outwardIssueKey]} #{linktype[:inward]} #{opts[:inwardIssueKey]}"
         end
 
+        def issue_link_delete(opts)
+          # always ensure we are logged in first
+          ensure_logged_in
+
+          @log.debug "Deleting issue link with arguments #{opts}"
+
+          # get from-issue
+          issue = get_issue_by_id(opts[:inwardIssueKey])
+
+          issue[:fields][:issuelinks].andand.each do |link|
+            next unless link[:type][:name].match(Regexp.new(opts[:linktype], Regexp::IGNORECASE))
+            next unless link[:outwardIssue][:key] == opts[:outwardIssueKey]
+
+            @log.debug "Found issue link to delete: #{link.inspect}"
+
+            response = json_delete("rest/api/2/issueLink/#{link[:id]}")
+            return
+          end
+
+          # if we get here, we couldn't find a link to delete
+          raise Atlassian::IllegalArgumentError.new("No links found that match the regex '#{opts[:linktype]}' for issue #{opts[:outwardIssueKey]} to issue #{opts[:inwardIssueKey]}")
+        end
+
         def issue_delete(key)
           # always ensure we are logged in first
           ensure_logged_in
