@@ -37,7 +37,7 @@ VALID_COMMANDS = {
   :create => "Create an issue",
   :delete => "Delete an issue (issue key supplied as a bare argument)",
   :link => "Create an issue link",
-  :deletelink => "Delete an issue link",
+  :delete_link => "Delete an issue link",
   :attachment => "Create/Update an attachment on an issue",
 }
 
@@ -319,7 +319,7 @@ def parse_opts
       puts optparse
       exit 1
     end
-  when :deletelink
+  when :delete_link
     unless options[:outwardIssueKey] && options[:inwardIssueKey] && options[:linktype]
       puts optparse
       exit 1
@@ -451,7 +451,7 @@ begin
         ap response
       end
 
-    when :deletelink
+    when :delete_link
       response = client.issue_link_delete(options)
       if options[:debug]
         ap response
