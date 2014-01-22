@@ -38,6 +38,7 @@ VALID_COMMANDS = {
   :delete => "Delete an issue (issue key supplied as a bare argument)",
   :link => "Create an issue link",
   :deletelink => "Delete an issue link",
+  :attachment => "Create/Update an attachment on an issue",
 }
 
 def parse_opts
@@ -268,6 +269,18 @@ def parse_opts
     o.on('--link-type [regex]', "Regex for link type name (first match used)") do |lt|
       options[:linktype] = lt
     end
+
+    o.separator ""
+    o.separator "Attachment Options:"
+    o.separator ""
+
+    o.on('--path [path]', "Path to file to attach") do |fn|
+      options[:path] = fn
+    end
+
+    o.on('--filename [name]', "Name to use for attachment (if not given, /path/to/foo.txt becomes 'foo.txt')") do |fn|
+      options[:filename] = fn
+    end
   end
 
   # this leaves unknown arguments alone
@@ -313,6 +326,11 @@ def parse_opts
     end
   when :create
     unless options[:projectkey] && options[:fields][:summary]
+      puts optparse
+      exit 1
+    end
+  when :attachment
+    unless (options[:key_or_id] = ARGV.shift) && options[:path]
       puts optparse
       exit 1
     end
@@ -478,6 +496,12 @@ begin
 
     when :delete
       response = client.issue_delete(get_issue_from_key_or_id(options, client, options[:key_or_id])[:key])
+      if options[:debug]
+        ap response
+      end
+
+    when :attachment
+      response = client.attachment_create(options[:key_or_id], options)
       if options[:debug]
         ap response
       end

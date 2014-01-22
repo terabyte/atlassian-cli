@@ -292,6 +292,45 @@ module Atlassian
         end
       end
 
+      # file should be a file handle, not a path
+      def json_post_file(path, file, headers = {})
+        if !headers['Content-Type']
+          headers['Content-Type'] = 'multipart/form-data'
+        end
+        uri = @endpoint + path
+
+        # TODO: don't hardcode this?
+        parameters = { :file => file }
+
+        @log.debug "JSON POST: " + parameters.to_json
+
+        response = raw_post(uri, parameters, headers)
+
+        status = response.status.to_i
+        if status >= 200 && status < 300
+          if response.content.size > 1
+            parsed = JSON.parse(response.content).deep_symbolize_keys
+          else
+            # empty means empty - jira does this =(
+            parsed = {}
+          end
+          return parsed
+        end
+
+        # some sort of error may have happened, or it could just be a 404 or something.
+        begin
+          parsed = JSON.parse(response.content).deep_symbolize_keys
+          if status < 500
+            raise HttpClientError.new(status, parsed, response.reason)
+          else
+            raise HttpServerError.new(status, parsed, response.reason)
+          end
+        rescue Exception => e
+          raise e if e.is_a?(HttpBaseStatus)
+          raise HttpServerError.new(status, response.content, response.reason)
+        end
+      end
+
       def json_put(path, parameters = {}, headers = {})
         if !headers['Content-Type']
           headers['Content-Type'] = 'application/json'

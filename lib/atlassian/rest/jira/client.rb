@@ -546,6 +546,24 @@ module Atlassian
           raise Atlassian::IllegalArgumentError.new("No links found that match the regex '#{opts[:linktype]}' for issue #{opts[:outwardIssueKey]} to issue #{opts[:inwardIssueKey]}")
         end
 
+        def attachment_create(id_or_key, opts)
+          # always ensure we are logged in first
+          ensure_logged_in
+
+          @log.debug "Creating attachment for issue #{id_or_key} with arguments #{opts}"
+
+          response = nil
+          File.open(opts[:path]) do |file|
+            params = { :file => file }
+            response = json_post_file("rest/api/2/issue/#{id_or_key}/attachments", file, {'X-Atlassian-Token' => 'nocheck'})
+            if opts[:debug]
+              ap response
+            end
+          end
+          at = response.first
+          @log.info "Successfully created attachment #{at[:filename]} with id #{at[:id]} size #{at[:size]} mimetype #{at[:mimeType]}"
+        end
+
         def issue_delete(key)
           # always ensure we are logged in first
           ensure_logged_in
