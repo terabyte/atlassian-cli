@@ -44,7 +44,7 @@ module Atlassian
             :default => Proc.new {|f,hash,key| hash[key].to_s },
             :priority => Proc.new {|f,hash,key| f.color ? hash[key].to_s.red : hash[key].to_s },
             :type => Proc.new {|f,hash,key| f.color ? hash[key].to_s.red : hash[key].to_s },
-            :status => Proc.new {|f,hash,key| status = (hash[:resolution].nil? ? hash[:status] : hash[:status] + " (#{hash[:resolution]})"); f.color ? status.to_s.red : status.to_s },
+            :status => Proc.new {|f,hash,key| status = (hash[:resolution] == "<none>" ? hash[:status] : hash[:status] + " (#{hash[:resolution]})"); f.color ? status.to_s.red : status.to_s },
             :summary => Proc.new {|f,hash,key| f.whitespace_fixup(hash[key].to_s) },
             :description => Proc.new {|f,hash,key| f.whitespace_fixup(hash[key].to_s) },
             :body => Proc.new {|f,hash,key| f.whitespace_fixup(hash[key].to_s) },
