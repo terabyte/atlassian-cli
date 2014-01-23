@@ -36,7 +36,7 @@ module Atlassian
 
           COLUMN_FORMATTING_MAP = {
             :id => Proc.new {|f,hash,key| f.color ? hash[key].to_s.green : hash[key].to_s },
-            :key => Proc.new {|f,hash,key| f.color ? hash[key].to_s.green : hash[key].to_s },
+            :key => Proc.new {|f,hash,key| key = (hash[:parent].nil? ? hash[key] : hash[key] + " (sub-task of #{hash[:parent]})"); f.color ? key.to_s.green : key.to_s },
             :name => Proc.new {|f,hash,key| f.color ? hash[key].to_s.greenish : hash[key].to_s },
             :reporter => Proc.new {|f,hash,key| f.color ? hash[key].to_s.greenish : hash[key].to_s },
             :assignee => Proc.new {|f,hash,key| f.color ? hash[key].to_s.greenish : hash[key].to_s },
@@ -44,7 +44,7 @@ module Atlassian
             :default => Proc.new {|f,hash,key| hash[key].to_s },
             :priority => Proc.new {|f,hash,key| f.color ? hash[key].to_s.red : hash[key].to_s },
             :type => Proc.new {|f,hash,key| f.color ? hash[key].to_s.red : hash[key].to_s },
-            :status => Proc.new {|f,hash,key| f.color ? hash[key].to_s.red : hash[key].to_s },
+            :status => Proc.new {|f,hash,key| status = (hash[:resolution] == "<none>" ? hash[:status] : hash[:status] + " (#{hash[:resolution]})"); f.color ? status.to_s.red : status.to_s },
             :summary => Proc.new {|f,hash,key| f.whitespace_fixup(hash[key].to_s) },
             :description => Proc.new {|f,hash,key| f.whitespace_fixup(hash[key].to_s) },
             :body => Proc.new {|f,hash,key| f.whitespace_fixup(hash[key].to_s) },
@@ -56,7 +56,7 @@ module Atlassian
             :resolution => Proc.new {|f,hash,key| f.color ? hash[key].to_s.red : hash[key].to_s },
             # yeah, this one is crazy because it formats the non-flat comment structure
             :commentAuthor => Proc.new {|f,hash,key| n = hash[:displayName].to_s; un = COLUMN_FORMATTING_MAP[:name].call(f,hash,:name); d = COLUMN_FORMATTING_MAP[:created].call(f,hash,:created); if f.color then n = n.yellowish; end; n + " (" + un + ")\n" + d },
-            #:commentAuthor => Proc.new {|f,hash,key| n = hash[:displayName].to_s.yellowish + " (" + COLUMN_FORMATTING_MAP[:name].call(f,hash,:name) + ")\n" + COLUMN_FORMATTING_MAP[:created].call(f,hash,:created) },
+            :attachmentUrl => Proc.new {|f,hash,key| "#{f.color ? hash[:url].to_s.yellowish : hash[:url]} (#{f.color ? hash[:mimetype].to_s.red : hash[:mimetype]})" },
           }
 
           # TODO: is this a special case?

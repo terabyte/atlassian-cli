@@ -36,6 +36,11 @@ VALID_COMMANDS = {
   :edit => "Edit fields of an existing issue (supplied as a bare argument",
   :create => "Create an issue",
   :delete => "Delete an issue (issue key supplied as a bare argument)",
+  :link => "Create an issue link",
+  :delete_link => "Delete an issue link",
+  :attachment => "Create/Update an attachment on an issue",
+  :delete_attachment => "Delete an attachment on an issue (requires issue key AND --filename, OR --id [attachment id]",
+  :download_attachment => "Download an attachment (requires issue key AND --filename, OR --id [attachment id])",
 }
 
 def parse_opts
@@ -182,11 +187,6 @@ def parse_opts
     o.separator "Create Options:"
     o.separator ""
 
-    # todo: support editing issue type?
-    o.on('--issue-type [REGEX]', "Text matching the name/description of the issue type to create (if not given, lowest ID is used)") do |ct|
-      options[:issuetype] = ct
-    end
-
     o.on('--project-key [KEY]', "Key of the project to create the issue in") do |ct|
       # keys are always all-caps and SOME (but not all) rest endpoints are case senstiive.
       options[:projectkey] = ct.upcase
@@ -224,6 +224,14 @@ def parse_opts
       options[:affectsversions] << t
     end
 
+    o.on('--issue-type [REGEX]', "Text matching the name/description of the issue type (if not given for create, lowest ID is used)") do |ct|
+      options[:issuetype] = ct
+    end
+
+    o.on('--parent [KEY]', "Issue which is the parent of this issue (only applicable to Sub-Task types)") do |key|
+      options[:parent] = key
+    end
+
     o.separator "    NOTE: for REGEX starting with a '-' you must do '--flag=-TEXT', '--flag -TEXT' will not parse correctly"
 
     o.on('--comment [TEXT]', "Text of the comment to add to the issue") do |ct|
@@ -248,6 +256,37 @@ def parse_opts
       options[:resolution] = state
     end
 
+    o.separator ""
+    o.separator "Issue Linking Options:"
+    o.separator ""
+
+    o.on('--from [outward issue key]', "Issue to link from") do |key|
+      options[:outwardIssueKey] = key
+    end
+
+    o.on('--to [inward issue key]', "Issue to link to") do |key|
+      options[:inwardIssueKey] = key
+    end
+
+    o.on('--link-type [regex]', "Regex for link type name (first match used)") do |lt|
+      options[:linktype] = lt
+    end
+
+    o.separator ""
+    o.separator "Attachment Options:"
+    o.separator ""
+
+    o.on('--path [path]', "Path to file to attach/download (required for create/download)") do |fn|
+      options[:path] = fn
+    end
+
+    o.on('--id [id]', "ID of the attachment to delete or download") do |fn|
+      options[:id] = fn
+    end
+
+    o.on('--filename [name]', "The filename of the attachment to delete or download") do |fn|
+      options[:filename] = fn
+    end
   end
 
   # this leaves unknown arguments alone
@@ -281,8 +320,39 @@ def parse_opts
       puts optparse
       exit 1
     end
+  when :link
+    unless options[:outwardIssueKey] && options[:inwardIssueKey] && options[:linktype]
+      puts optparse
+      exit 1
+    end
+  when :delete_link
+    unless options[:outwardIssueKey] && options[:inwardIssueKey] && options[:linktype]
+      puts optparse
+      exit 1
+    end
   when :create
     unless options[:projectkey] && options[:fields][:summary]
+      puts optparse
+      exit 1
+    end
+  when :attachment
+    unless (options[:key_or_id] = ARGV.shift) && options[:path]
+      puts optparse
+      exit 1
+    end
+  when :delete_attachment
+    options[:key_or_id] = ARGV.shift
+    unless (options[:key_or_id] && options[:filename]) || options[:id]
+      puts optparse
+      exit 1
+    end
+  when :download_attachment
+    options[:key_or_id] = ARGV.shift
+    unless (options[:key_or_id] && options[:filename]) || options[:id]
+      puts optparse
+      exit 1
+    end
+    unless options[:path]
       puts optparse
       exit 1
     end
@@ -397,6 +467,18 @@ begin
         ap response
       end
 
+    when :link
+      response = client.issue_link_create(options)
+      if options[:debug]
+        ap response
+      end
+
+    when :delete_link
+      response = client.issue_link_delete(options)
+      if options[:debug]
+        ap response
+      end
+
     when :edit
       issue = get_issue_from_key_or_id(options, client, options[:key_or_id])
       edit_opts = {
@@ -408,6 +490,7 @@ begin
         :priority =>options[:priority],
         :commentText => options[:commentText],
         :issuetype => options[:issuetype],
+        :parent => options[:parent],
       }
 
       response = client.issue_update(issue, edit_opts)
@@ -425,6 +508,7 @@ begin
         :priority =>options[:priority],
         :projectkey => options[:projectkey],
         :issuetype => options[:issuetype],
+        :parent => options[:parent],
       }
 
       response = client.issue_create(create_opts)
@@ -434,6 +518,34 @@ begin
 
     when :delete
       response = client.issue_delete(get_issue_from_key_or_id(options, client, options[:key_or_id])[:key])
+      if options[:debug]
+        ap response
+      end
+
+    when :attachment
+      response = client.attachment_create(options[:key_or_id], options)
+      if options[:debug]
+        ap response
+      end
+
+    when :delete_attachment
+      response = nil
+      if options[:key_or_id] && options[:filename]
+        response = client.attachment_delete_by_issue_and_filename(options[:key_or_id], options[:filename], options)
+      else
+        response = client.attachment_delete(options[:id], options)
+      end
+      if options[:debug]
+        ap response
+      end
+
+    when :download_attachment
+      response = nil
+      if options[:key_or_id] && options[:filename]
+        client.attachment_download_by_issue_and_filename(options[:key_or_id], options[:filename], options)
+      else
+        client.attachment_download(options[:id], options)
+      end
       if options[:debug]
         ap response
       end

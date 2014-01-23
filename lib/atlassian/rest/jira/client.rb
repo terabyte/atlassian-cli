@@ -22,23 +22,23 @@ module Atlassian
           ensure_logged_in
 
           # path, params, headers
-          response = json_get("rest/api/2/search", {'jql' => query})
+          response = json_get("rest/api/2/search", {'jql' => query, :fields => "*all,-comment"})
         end
 
         def get_issue_by_id(id)
           # always ensure we are logged in first
           ensure_logged_in
 
-          response = json_get("rest/api/2/search", {'jql' => "id = #{id}"})
-          return response[:issues].andand.first
+          response = json_get("rest/api/2/issue/#{id}", {:fields => "*all,-comment"})
+          return response
         end
 
         def get_issue_by_key(key)
           # always ensure we are logged in first
           ensure_logged_in
 
-          response = json_get("rest/api/2/search", {'jql' => "key = #{key}"})
-          return response[:issues].andand.first
+          response = json_get("rest/api/2/issue/#{key}", {:fields => "*all,-comment"})
+          return response
         end
 
         # https://developer.atlassian.com/display/JIRADEV/JIRA+REST+API+Example+-+Add+Comment
@@ -200,6 +200,43 @@ module Atlassian
             end
           end
 
+          # If we are updating issuetype, need to fetch the possibilities
+          if !edit_opts[:issuetype].empty?
+            found_issue_type = nil
+            match = false
+            issuetypes = json_get("rest/api/2/issue/createmeta?projectKeys=#{issue[:fields][:project][:key]}")[:projects].first[:issuetypes]
+            issuetypes.sort {|a,b| a[:id].to_i <=> b[:id].to_i }.each do |issuetype|
+              @log.debug "Found issuetype: #{issuetype[:name]}"
+
+              if issuetype[:name].match(Regexp.new(edit_opts[:issuetype] || ".", Regexp::IGNORECASE))
+                found_issue_type = issuetype
+                match = true
+                break
+              end
+            end
+
+            if match
+              json[:fields] = {} if json[:fields].nil?
+              json[:fields][:issuetype] = { :id => found_issue_type[:id] }
+              # XXX: Note that if the issue was a non-sub-task and we are
+              # converting to a sub-task type, the call will fail (with a very
+              # unhelpful error message "Issue type is a sub-task but parent
+              # issue key or id not specified.").  This is because the REST API
+              # does not support this.  See:
+              # https://jira.atlassian.com/browse/JRA-27893
+              # Leaving this stuff in here anyways in case they ever fix it,
+              # and also so we can re-parent existing subtasks, or switch
+              # between two issue types where both are subtask or non-subtask.
+              @log.debug("Matched issue type #{found_issue_type[:name]} with regex #{edit_opts[:issuetype]}")
+              if !edit_opts[:parent].nil?
+                @log.debug("Including parent key #{edit_opts[:parent]}")
+                json[:fields][:parent] = { :key => edit_opts[:parent] }
+              end
+            else
+              raise Atlassian::IllegalArgumentError.new("Unable to find matching issue type for regex #{edit_opts[:issuetype]}")
+            end
+          end
+
           # If we are updating fixversions, need to fetch the possibilities
           if !edit_opts[:fixversions].empty?
             # create the container
@@ -311,10 +348,11 @@ module Atlassian
             raise Atlassian::IllegalArgumentError.new("No projects found for key #{opts[:projectkey]}")
           end
 
+          @log.debug("ISSUE TYPE: #{opts[:issuetype]}")
           found_issue_type = nil
           match = false
           createmeta[:projects].first[:issuetypes].sort {|a,b| a[:id].to_i <=> b[:id].to_i }.each do |type|
-            next if type[:subtask]
+            next if opts[:parent].nil? && type[:subtask]
 
             @log.debug "Found issuetype: #{type[:name]}"
             if found_issue_type.nil? || (found_issue_type && found_issue_type[:id] > type[:id])
@@ -329,6 +367,9 @@ module Atlassian
           end
 
           json[:fields][:issuetype] = { :id => found_issue_type[:id] }
+          if found_issue_type[:subtask]
+            json[:fields][:parent] = { :key => opts[:parent] }
+          end
           if match
             @log.debug("Matched issue type #{found_issue_type[:name]} with regex #{opts[:issuetype]}")
           else
@@ -443,6 +484,171 @@ module Atlassian
             @log.error "Unable to create issue"
           end
           response
+        end
+
+        def issue_link_create(opts)
+          # always ensure we are logged in first
+          ensure_logged_in
+
+          @log.debug "Creating issue link with arguments #{opts}"
+
+          types = json_get("rest/api/2/issueLinkType")[:issueLinkTypes]
+
+          json = {
+            :inwardIssue => { :key => opts[:inwardIssueKey] },
+            :outwardIssue => { :key => opts[:outwardIssueKey] },
+          }
+
+          if opts[:commentText]
+            json[:comment] = { :body => opts[:commentText] }
+          end
+
+          # figure out link type
+          linktype = nil
+          types.each do |type|
+            if type[:name].match(Regexp.new(opts[:linktype], Regexp::IGNORECASE))
+              @log.debug "Found issue type #{type[:name]}"
+              linktype = type
+              break
+            end
+          end
+          if linktype.nil?
+            raise Atlassian::IllegalArgumentError.new("No links found that match the regex #{opts[:linktype]}")
+          end
+
+          json[:type] = { :id => linktype[:id] }
+
+          response = json_post("rest/api/2/issueLink", json)
+
+          @log.info "Successfully created issue link #{opts[:outwardIssueKey]} #{linktype[:inward]} #{opts[:inwardIssueKey]}"
+        end
+
+        def issue_link_delete(opts)
+          # always ensure we are logged in first
+          ensure_logged_in
+
+          @log.debug "Deleting issue link with arguments #{opts}"
+
+          # get from-issue
+          issue = get_issue_by_id(opts[:inwardIssueKey])
+
+          issue[:fields][:issuelinks].andand.each do |link|
+            next unless link[:type][:name].match(Regexp.new(opts[:linktype], Regexp::IGNORECASE))
+            next unless link[:outwardIssue][:key] == opts[:outwardIssueKey]
+
+            @log.debug "Found issue link to delete: #{link.inspect}"
+
+            response = json_delete("rest/api/2/issueLink/#{link[:id]}")
+            return
+          end
+
+          # if we get here, we couldn't find a link to delete
+          raise Atlassian::IllegalArgumentError.new("No links found that match the regex '#{opts[:linktype]}' for issue #{opts[:outwardIssueKey]} to issue #{opts[:inwardIssueKey]}")
+        end
+
+        def attachment_create(id_or_key, opts)
+          # always ensure we are logged in first
+          ensure_logged_in
+
+          @log.debug "Creating attachment for issue #{id_or_key} with arguments #{opts}"
+
+          response = nil
+          File.open(opts[:path]) do |file|
+            params = { :file => file }
+            response = json_post_file("rest/api/2/issue/#{id_or_key}/attachments", file, {'X-Atlassian-Token' => 'nocheck'})
+            if opts[:debug]
+              ap response
+            end
+          end
+          at = response.first
+          @log.info "Successfully created attachment #{at[:filename]} with id #{at[:id]} size #{at[:size]} mimetype #{at[:mimeType]}"
+        end
+
+        def attachment_delete(attachment_id, opts)
+          # always ensure we are logged in first
+          ensure_logged_in
+
+          response = json_delete("rest/api/2/attachment/#{attachment_id}")
+          if opts[:debug]
+            ap response
+          end
+        end
+
+        def attachment_delete_by_issue_and_filename(issue_id_or_key, filename, opts)
+          # always ensure we are logged in first
+          ensure_logged_in
+
+          @log.debug "Deleting all attachment for issue #{issue_id_or_key} with filename matching #{filename}"
+
+          issue = nil
+          if issue_id_or_key.match(/^\d+$/)
+            issue = get_issue_by_id(issue_id_or_key)
+          else
+            # already raises in case of error
+            issue = get_issue_by_key(issue_id_or_key)
+          end
+
+          issue[:fields][:attachment].each do |at|
+            next unless at[:filename].match(filename)
+
+            @log.info "Found attachment id #{at[:id]}, deleting"
+            response = json_delete("rest/api/2/attachment/#{at[:id]}")
+            if opts[:debug]
+              ap response
+            end
+          end
+        end
+
+        def attachment_download_by_issue_and_filename(issue_id_or_key, filename, opts)
+          # always ensure we are logged in first
+          ensure_logged_in
+
+          @log.debug "Downloading attachment for issue #{issue_id_or_key} with filename matching #{filename}"
+
+          issue = nil
+          if issue_id_or_key.match(/^\d+$/)
+            issue = get_issue_by_id(issue_id_or_key)
+          else
+            # already raises in case of error
+            issue = get_issue_by_key(issue_id_or_key)
+          end
+
+          issue[:fields][:attachment].each do |at|
+            next unless at[:filename].match(filename)
+
+            @log.info "Found attachment id #{at[:id]} filename #{at[:filename]}, downloading"
+            # in atlas-cli specifically, we require path because PWD is always
+            # set to the atlas-cli directory when invoking the CLI using the
+            # standard method, which is fairly unhelpful.  Nonetheless, for
+            # clients invoked in a different way, we might as well do this
+            # fallback code.
+            path = opts[:path] || File.join(Dir.pwd, attachment[:filename])
+
+            file_get(at[:content], path)
+            # return because we grab the first one matching the filename
+            return
+          end
+          raise Atlassian::IllegalArgumentError.new("No attachment found that match the filename '#{filename}' for issue #{issue_id_or_key}")
+        end
+
+        def attachment_download(attachment_id, opts)
+          # always ensure we are logged in first
+          ensure_logged_in
+
+          @log.debug "Downloading attachment id #{attachment_id}"
+
+          attachment = json_get("rest/api/2/attachment/#{attachment_id}")
+
+          @log.info "Found attachment id #{attachment_id} filename #{attachment[:filename]}, downloading"
+
+          # in atlas-cli specifically, we require path because PWD is always
+          # set to the atlas-cli directory when invoking the CLI using the
+          # standard method, which is fairly unhelpful.  Nonetheless, for
+          # clients invoked in a different way, we might as well do this
+          # fallback code.
+          path = opts[:path] || File.join(Dir.pwd, attachment[:filename])
+
+          file_get(attachment[:content], path)
         end
 
         def issue_delete(key)

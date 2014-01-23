@@ -69,16 +69,13 @@ broken up by product.
 * Create new issue with no component/type, try to edit it, profit?
 
 ## JIRA
-* Have status include resolution if status = closed
 * Create Components
-* List summary (rows returned)
-* Change Issue Type
-* Move issue
-* Attach files
-* Issue linking
+* Support converting regular issues to sub-tasks (blocked by https://jira.atlassian.com/browse/JRA-27893)
+* Move issue (also not supported by the rest API: https://answers.atlassian.com/questions/132846/how-move-issue-to-another-project-via-rest-api)
 * JQL Query Pagination
 * list components, priorities, assignees, etc.
 * issue labels
+* Selectively get only fields we need (PERF)
 
 ## Confluence
 * Fetch raw page, upload raw page
