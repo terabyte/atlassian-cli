@@ -403,6 +403,18 @@ module Atlassian
         end
       end
 
+      def file_get(uri, filepath, parameters = {}, headers = {})
+
+        @log.debug "GET URI: " + uri
+        @log.debug "WRITING FILE: " + filepath
+
+        File.open(filepath, 'wb') do |file|
+          @raw_http_client.get_content(uri, parameters, @extra_headers.merge(headers)) do |chunk|
+            file.write(chunk)
+          end
+        end
+      end
+
 #      # cookie support
 #      # NAME: JSESSIONID
 #      # example value: A91BB8E0084CBD2B3AD66A910678CDF9

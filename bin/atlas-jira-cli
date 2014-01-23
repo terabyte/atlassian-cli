@@ -40,6 +40,7 @@ VALID_COMMANDS = {
   :delete_link => "Delete an issue link",
   :attachment => "Create/Update an attachment on an issue",
   :delete_attachment => "Delete an attachment on an issue (requires issue key AND --filename, OR --id [attachment id]",
+  :download_attachment => "Download an attachment (requires issue key AND --filename, OR --id [attachment id])",
 }
 
 def parse_opts
@@ -275,15 +276,15 @@ def parse_opts
     o.separator "Attachment Options:"
     o.separator ""
 
-    o.on('--path [path]', "Path to file to attach (required for create)") do |fn|
+    o.on('--path [path]', "Path to file to attach/download (required for create/download)") do |fn|
       options[:path] = fn
     end
 
-    o.on('--id [id]', "ID of the attachment to delete") do |fn|
+    o.on('--id [id]', "ID of the attachment to delete or download") do |fn|
       options[:id] = fn
     end
 
-    o.on('--filename [name]', "The filename of the attachment to delete") do |fn|
+    o.on('--filename [name]', "The filename of the attachment to delete or download") do |fn|
       options[:filename] = fn
     end
   end
@@ -342,6 +343,16 @@ def parse_opts
   when :delete_attachment
     options[:key_or_id] = ARGV.shift
     unless (options[:key_or_id] && options[:filename]) || options[:id]
+      puts optparse
+      exit 1
+    end
+  when :download_attachment
+    options[:key_or_id] = ARGV.shift
+    unless (options[:key_or_id] && options[:filename]) || options[:id]
+      puts optparse
+      exit 1
+    end
+    unless options[:path]
       puts optparse
       exit 1
     end
@@ -523,6 +534,17 @@ begin
         response = client.attachment_delete_by_issue_and_filename(options[:key_or_id], options[:filename], options)
       else
         response = client.attachment_delete(options[:id], options)
+      end
+      if options[:debug]
+        ap response
+      end
+
+    when :download_attachment
+      response = nil
+      if options[:key_or_id] && options[:filename]
+        client.attachment_download_by_issue_and_filename(options[:key_or_id], options[:filename], options)
+      else
+        client.attachment_download(options[:id], options)
       end
       if options[:debug]
         ap response

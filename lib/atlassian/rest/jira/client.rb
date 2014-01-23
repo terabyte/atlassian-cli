@@ -599,6 +599,58 @@ module Atlassian
           end
         end
 
+        def attachment_download_by_issue_and_filename(issue_id_or_key, filename, opts)
+          # always ensure we are logged in first
+          ensure_logged_in
+
+          @log.debug "Downloading attachment for issue #{issue_id_or_key} with filename matching #{filename}"
+
+          issue = nil
+          if issue_id_or_key.match(/^\d+$/)
+            issue = get_issue_by_id(issue_id_or_key)
+          else
+            # already raises in case of error
+            issue = get_issue_by_key(issue_id_or_key)
+          end
+
+          issue[:fields][:attachment].each do |at|
+            next unless at[:filename].match(filename)
+
+            @log.info "Found attachment id #{at[:id]} filename #{at[:filename]}, downloading"
+            # in atlas-cli specifically, we require path because PWD is always
+            # set to the atlas-cli directory when invoking the CLI using the
+            # standard method, which is fairly unhelpful.  Nonetheless, for
+            # clients invoked in a different way, we might as well do this
+            # fallback code.
+            path = opts[:path] || File.join(Dir.pwd, attachment[:filename])
+
+            file_get(at[:content], path)
+            # return because we grab the first one matching the filename
+            return
+          end
+          raise Atlassian::IllegalArgumentError.new("No attachment found that match the filename '#{filename}' for issue #{issue_id_or_key}")
+        end
+
+        def attachment_download(attachment_id, opts)
+          # always ensure we are logged in first
+          ensure_logged_in
+
+          @log.debug "Downloading attachment id #{attachment_id}"
+
+          attachment = json_get("rest/api/2/attachment/#{attachment_id}")
+
+          @log.info "Found attachment id #{attachment_id} filename #{attachment[:filename]}, downloading"
+
+          # in atlas-cli specifically, we require path because PWD is always
+          # set to the atlas-cli directory when invoking the CLI using the
+          # standard method, which is fairly unhelpful.  Nonetheless, for
+          # clients invoked in a different way, we might as well do this
+          # fallback code.
+          path = opts[:path] || File.join(Dir.pwd, attachment[:filename])
+
+          file_get(attachment[:content], path)
+        end
+
         def issue_delete(key)
           # always ensure we are logged in first
           ensure_logged_in
