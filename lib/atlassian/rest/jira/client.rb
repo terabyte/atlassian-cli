@@ -10,11 +10,13 @@ module Atlassian
       class Client < Atlassian::Rest::Client
 
         attr_accessor :auth_success
+        attr_accessor :api_version
 
         def initialize(options)
           super(options)
 
           @auth_success = nil
+          @api_version = 2
         end
 
         def jql(query)
@@ -22,14 +24,14 @@ module Atlassian
           ensure_logged_in
 
           # path, params, headers
-          response = json_get("rest/api/2/search", {'jql' => query, :fields => "*all,-comment"})
+          response = json_get("rest/api/#{@api_version}/search", {'jql' => query, :fields => "*all,-comment"})
         end
 
         def get_issue_by_id(id)
           # always ensure we are logged in first
           ensure_logged_in
 
-          response = json_get("rest/api/2/issue/#{id}", {:fields => "*all,-comment"})
+          response = json_get("rest/api/#{@api_version}/issue/#{id}", {:fields => "*all,-comment"})
           return response
         end
 
@@ -37,7 +39,7 @@ module Atlassian
           # always ensure we are logged in first
           ensure_logged_in
 
-          response = json_get("rest/api/2/issue/#{key}", {:fields => "*all,-comment"})
+          response = json_get("rest/api/#{@api_version}/issue/#{key}", {:fields => "*all,-comment"})
           return response
         end
 
@@ -46,7 +48,7 @@ module Atlassian
           # always ensure we are logged in first
           ensure_logged_in
 
-          response = json_get("rest/api/2/issue/#{issue[:key]}/comment")
+          response = json_get("rest/api/#{@api_version}/issue/#{issue[:key]}/comment")
           return response
         end
 
@@ -54,7 +56,7 @@ module Atlassian
           # always ensure we are logged in first
           ensure_logged_in
 
-          response = json_post("rest/api/2/issue/#{issue[:key]}/comment", comment)
+          response = json_post("rest/api/#{@api_version}/issue/#{issue[:key]}/comment", comment)
           return response
         end
 
@@ -67,7 +69,7 @@ module Atlassian
 
           # get list of possible states
           @log.debug "Searching for available transitions for issue #{issue[:key]}"
-          response = json_get("rest/api/2/issue/#{issue[:key]}/transitions?expand=transitions,fields")
+          response = json_get("rest/api/#{@api_version}/issue/#{issue[:key]}/transitions?expand=transitions,fields")
 
           target_id = nil
           target_name = nil
@@ -111,7 +113,7 @@ module Atlassian
 
           # If provided we need to set the resolution, otherwise we can leave it out
           if resolution_regex
-            resolution = get_matching_object_by_regex("rest/api/2/resolution", Regexp.new(resolution_regex, Regexp::IGNORECASE))
+            resolution = get_matching_object_by_regex("rest/api/#{@api_version}/resolution", Regexp.new(resolution_regex, Regexp::IGNORECASE))
 
             if resolution[0].nil?
               @log.error "Unable to find resolution for #{opts[:priority]}, ignoring!"
@@ -124,7 +126,7 @@ module Atlassian
             end
           end
 
-          response = json_post("rest/api/2/issue/#{issue[:key]}/transitions?expand=transitions,fields", json)
+          response = json_post("rest/api/#{@api_version}/issue/#{issue[:key]}/transitions?expand=transitions,fields", json)
           @log.info "Successfully performed transition #{transition_name} on issue #{issue[:key]} from state #{issue[:fields][:status][:name]} to state #{target_name}"
         end
 
@@ -152,7 +154,7 @@ module Atlassian
 
           # If we are updating priority, need to fetch its ID
           if edit_opts[:priority]
-            priorities = json_get("rest/api/2/priority")
+            priorities = json_get("rest/api/#{@api_version}/priority")
             priority_name = nil
             priority_id = nil
             priorities.each do |p|
@@ -174,7 +176,7 @@ module Atlassian
           if !edit_opts[:components].empty?
             # create the container
             json[:update][:components] = []
-            components = json_get("rest/api/2/project/#{issue[:fields][:project][:key]}/components")
+            components = json_get("rest/api/#{@api_version}/project/#{issue[:fields][:project][:key]}/components")
 
             # for each component, figure out if we are adding or removing and match to an ID
             edit_opts[:components].each do |current_component|
@@ -204,7 +206,7 @@ module Atlassian
           if !edit_opts[:issuetype].empty?
             found_issue_type = nil
             match = false
-            issuetypes = json_get("rest/api/2/issue/createmeta?projectKeys=#{issue[:fields][:project][:key]}")[:projects].first[:issuetypes]
+            issuetypes = json_get("rest/api/#{@api_version}/issue/createmeta?projectKeys=#{issue[:fields][:project][:key]}")[:projects].first[:issuetypes]
             issuetypes.sort {|a,b| a[:id].to_i <=> b[:id].to_i }.each do |issuetype|
               @log.debug "Found issuetype: #{issuetype[:name]}"
 
@@ -244,7 +246,7 @@ module Atlassian
             # call output...but it works (as of jira 5.2.11 anyways).  and YES,
             # it is case senstiive.  awesome.
             json[:update][:fixVersions] = []
-            fixversions = json_get("rest/api/2/project/#{issue[:fields][:project][:key]}/versions")
+            fixversions = json_get("rest/api/#{@api_version}/project/#{issue[:fields][:project][:key]}/versions")
 
             # for each fixversion, figure out if we are adding or removing and match to an ID
             edit_opts[:fixversions].each do |current_fixversion|
@@ -274,7 +276,7 @@ module Atlassian
           if !edit_opts[:affectsversions].empty?
             # create the container
             json[:update][:versions] = []
-            affectsversions = json_get("rest/api/2/project/#{issue[:fields][:project][:key]}/versions")
+            affectsversions = json_get("rest/api/#{@api_version}/project/#{issue[:fields][:project][:key]}/versions")
 
             # for each affectsversion, figure out if we are adding or removing and match to an ID
             edit_opts[:affectsversions].each do |current_affectsversion|
@@ -302,7 +304,7 @@ module Atlassian
 
           if edit_opts[:assignee]
             # get the list of assignable people for this issue
-            assignees = json_get("rest/api/2/user/assignable/search?issueKey=#{issue[:key]}&maxResults=2&username=#{URI.escape(edit_opts[:assignee])}")
+            assignees = json_get("rest/api/#{@api_version}/user/assignable/search?issueKey=#{issue[:key]}&maxResults=2&username=#{URI.escape(edit_opts[:assignee])}")
 
             if (assignees.size != 1)
               @log.error "Unable to find UNIQUE assignee for #{edit_opts[:assignee]}, ignoring (try a larger substring, check spelling?)"
@@ -312,7 +314,7 @@ module Atlassian
             end
           end
 
-          response = json_put("rest/api/2/issue/#{issue[:key]}", json)
+          response = json_put("rest/api/#{@api_version}/issue/#{issue[:key]}", json)
           @log.info "Successfully updated issue #{issue[:key]}"
           response
         end
@@ -328,7 +330,7 @@ module Atlassian
           }
 
           # DEVS: use this to get the create meta for all projects
-          #createmeta = json_get("rest/api/2/issue/createmeta")
+          #createmeta = json_get("rest/api/#{@api_version}/issue/createmeta")
           #ap createmeta
           #exit 1
 
@@ -340,7 +342,7 @@ module Atlassian
           # thing as default issue type but I don't see that here, so we will
           # use the type with the lowest ID that isn't a subissue type unless a
           # regex is provided.  People could add a default type to their RC file.
-          createmeta = json_get("rest/api/2/issue/createmeta?projectKeys=#{opts[:projectkey]}")
+          createmeta = json_get("rest/api/#{@api_version}/issue/createmeta?projectKeys=#{opts[:projectkey]}")
           #ap createmeta
           #exit 1
 
@@ -378,7 +380,7 @@ module Atlassian
 
           # If provided we need to set the priority, otherwise we can leave it out
           if opts[:priority]
-            priority = get_matching_object_by_regex("rest/api/2/priority", Regexp.new(opts[:priority], Regexp::IGNORECASE))
+            priority = get_matching_object_by_regex("rest/api/#{@api_version}/priority", Regexp.new(opts[:priority], Regexp::IGNORECASE))
 
             if priority[0].nil?
               @log.error "Unable to find priority for #{opts[:priority]}, ignoring!"
@@ -391,7 +393,7 @@ module Atlassian
           if opts[:components] && !opts[:components].empty?
             # create the container
             json[:fields][:components] = []
-            components = json_get("rest/api/2/project/#{opts[:projectkey]}/components")
+            components = json_get("rest/api/#{@api_version}/project/#{opts[:projectkey]}/components")
 
             # for each component, figure out if we are adding or removing and match to an ID
             opts[:components].each do |current_component|
@@ -418,7 +420,7 @@ module Atlassian
           # If we are setting fixversions, need to fetch the possibilities
           if opts[:fixversions] && !opts[:fixversions].empty?
             json[:fields][:fixVersions] = []
-            fixversions = json_get("rest/api/2/project/#{opts[:projectkey]}/versions")
+            fixversions = json_get("rest/api/#{@api_version}/project/#{opts[:projectkey]}/versions")
 
             opts[:fixversions].each do |current_fixversion|
               current_fixversion.gsub!(/^\+/, '')
@@ -444,7 +446,7 @@ module Atlassian
           if false && opts[:affectsversions] && !opts[:affectsversions].empty?
             json[:fields][:affectsVersions] = []
             # TODO: only call this once?  Also, fix the issue_update method the same way
-            affectsversions = json_get("rest/api/2/project/#{opts[:projectkey]}/versions")
+            affectsversions = json_get("rest/api/#{@api_version}/project/#{opts[:projectkey]}/versions")
 
             opts[:affectsversions].each do |current_affectsversion|
               current_affectsversion.gsub!(/^\+/, '')
@@ -467,7 +469,7 @@ module Atlassian
 
           if opts[:assignee]
             # get the list of assignable people for this issue
-            assignees = json_get("rest/api/2/user/assignable/search?project=#{opts[:projectkey]}&maxResults=2&username=#{URI.escape(opts[:assignee])}")
+            assignees = json_get("rest/api/#{@api_version}/user/assignable/search?project=#{opts[:projectkey]}&maxResults=2&username=#{URI.escape(opts[:assignee])}")
 
             if (assignees.size != 1)
               @log.error "Unable to find UNIQUE assignee for #{edit_opts[:assignee]}, ignoring (try a larger substring, check spelling?)"
@@ -477,7 +479,7 @@ module Atlassian
             end
           end
 
-          response = json_post("rest/api/2/issue", json)
+          response = json_post("rest/api/#{@api_version}/issue", json)
           if response[:key]
             @log.info "Successfully created issue #{response[:key]}"
           else
@@ -492,7 +494,7 @@ module Atlassian
 
           @log.debug "Creating issue link with arguments #{opts}"
 
-          types = json_get("rest/api/2/issueLinkType")[:issueLinkTypes]
+          types = json_get("rest/api/#{@api_version}/issueLinkType")[:issueLinkTypes]
 
           json = {
             :inwardIssue => { :key => opts[:inwardIssueKey] },
@@ -518,7 +520,7 @@ module Atlassian
 
           json[:type] = { :id => linktype[:id] }
 
-          response = json_post("rest/api/2/issueLink", json)
+          response = json_post("rest/api/#{@api_version}/issueLink", json)
 
           @log.info "Successfully created issue link #{opts[:outwardIssueKey]} #{linktype[:inward]} #{opts[:inwardIssueKey]}"
         end
@@ -538,7 +540,7 @@ module Atlassian
 
             @log.debug "Found issue link to delete: #{link.inspect}"
 
-            response = json_delete("rest/api/2/issueLink/#{link[:id]}")
+            response = json_delete("rest/api/#{@api_version}/issueLink/#{link[:id]}")
             return
           end
 
@@ -555,7 +557,7 @@ module Atlassian
           response = nil
           File.open(opts[:path]) do |file|
             params = { :file => file }
-            response = json_post_file("rest/api/2/issue/#{id_or_key}/attachments", file, {'X-Atlassian-Token' => 'nocheck'})
+            response = json_post_file("rest/api/#{@api_version}/issue/#{id_or_key}/attachments", file, {'X-Atlassian-Token' => 'nocheck'})
             if opts[:debug]
               ap response
             end
@@ -568,7 +570,7 @@ module Atlassian
           # always ensure we are logged in first
           ensure_logged_in
 
-          response = json_delete("rest/api/2/attachment/#{attachment_id}")
+          response = json_delete("rest/api/#{@api_version}/attachment/#{attachment_id}")
           if opts[:debug]
             ap response
           end
@@ -592,7 +594,7 @@ module Atlassian
             next unless at[:filename].match(filename)
 
             @log.info "Found attachment id #{at[:id]}, deleting"
-            response = json_delete("rest/api/2/attachment/#{at[:id]}")
+            response = json_delete("rest/api/#{@api_version}/attachment/#{at[:id]}")
             if opts[:debug]
               ap response
             end
@@ -637,7 +639,7 @@ module Atlassian
 
           @log.debug "Downloading attachment id #{attachment_id}"
 
-          attachment = json_get("rest/api/2/attachment/#{attachment_id}")
+          attachment = json_get("rest/api/#{@api_version}/attachment/#{attachment_id}")
 
           @log.info "Found attachment id #{attachment_id} filename #{attachment[:filename]}, downloading"
 
@@ -657,12 +659,12 @@ module Atlassian
 
           @log.debug "Deleting issue #{key}"
 
-          response = json_delete("rest/api/2/issue/#{key}")
+          response = json_delete("rest/api/#{@api_version}/issue/#{key}")
           @log.info "Successfully deleted issue #{key}"
           response
         end
 
-        # TODO: http://localhost:2990/jira/rest/api/2/resolution
+        # TODO: http://localhost:2990/jira/rest/api/#{@api_version}/resolution
         # Returns [id, name] for first match found
         def get_matching_object_by_regex(url, regex)
           items = json_get(url)
