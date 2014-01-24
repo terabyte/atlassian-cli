@@ -173,7 +173,7 @@ module Atlassian
           end
 
           # If we are updating components, need to fetch the possibilities
-          if !edit_opts[:components].empty?
+          if !edit_opts[:components].andand.empty?
             # create the container
             json[:update][:components] = []
             components = json_get("rest/api/#{@api_version}/project/#{issue[:fields][:project][:key]}/components")
@@ -203,7 +203,7 @@ module Atlassian
           end
 
           # If we are updating issuetype, need to fetch the possibilities
-          if !edit_opts[:issuetype].empty?
+          if !edit_opts[:issuetype].andand.empty?
             found_issue_type = nil
             match = false
             issuetypes = json_get("rest/api/#{@api_version}/issue/createmeta?projectKeys=#{issue[:fields][:project][:key]}")[:projects].first[:issuetypes]
@@ -240,7 +240,7 @@ module Atlassian
           end
 
           # If we are updating fixversions, need to fetch the possibilities
-          if !edit_opts[:fixversions].empty?
+          if !edit_opts[:fixversions].andand.empty?
             # create the container
             # ARGH!  the key "fixVersions" isn't listed in the editmeta API
             # call output...but it works (as of jira 5.2.11 anyways).  and YES,
@@ -273,7 +273,7 @@ module Atlassian
           end
 
           # If we are updating affectsversions, need to fetch the possibilities
-          if !edit_opts[:affectsversions].empty?
+          if !edit_opts[:affectsversions].andand.empty?
             # create the container
             json[:update][:versions] = []
             affectsversions = json_get("rest/api/#{@api_version}/project/#{issue[:fields][:project][:key]}/versions")
