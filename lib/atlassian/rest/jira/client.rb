@@ -664,6 +664,19 @@ module Atlassian
           response
         end
 
+        def component_get(project_or_issue_key, opts)
+          # always ensure we are logged in first
+          ensure_logged_in
+
+          @log.debug "Getting components for issue/project #{project_or_issue_key}"
+
+          response = json_get("/rest/api/#{@api_version}/project/#{project_or_issue_key}/components")
+          if opts[:debug]
+            ap response
+          end
+          return response
+        end
+
         # TODO: http://localhost:2990/jira/rest/api/#{@api_version}/resolution
         # Returns [id, name] for first match found
         def get_matching_object_by_regex(url, regex)

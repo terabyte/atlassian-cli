@@ -14,12 +14,14 @@ end
 
 require 'atlassian/cli/credentials'
 require 'atlassian/hashifiers/jira_issue'
+require 'atlassian/hashifiers/jira_component'
 require 'atlassian/monkeypatch'
 require 'atlassian/rest/jira/client'
 
 # outputters
 require 'atlassian/cli/outputters/table/jira_issue'
 require 'atlassian/cli/outputters/table/jira_issue_list'
+require 'atlassian/cli/outputters/table/jira_component_list'
 require 'atlassian/cli/outputters/json/jira_issue'
 require 'atlassian/cli/outputters/json/jira_issue_list'
 
@@ -41,6 +43,7 @@ VALID_COMMANDS = {
   :attachment => "Create/Update an attachment on an issue",
   :delete_attachment => "Delete an attachment on an issue (requires issue key AND --filename, OR --id [attachment id]",
   :download_attachment => "Download an attachment (requires issue key AND --filename, OR --id [attachment id])",
+  :component => "List/Create/Delete components",
 }
 
 def parse_opts
@@ -287,6 +290,14 @@ def parse_opts
     o.on('--filename [name]', "The filename of the attachment to delete or download") do |fn|
       options[:filename] = fn
     end
+
+    o.separator ""
+    o.separator "Component Options:"
+    o.separator ""
+
+    o.on('--list', "List components for a given project (requires --project-key)") do
+      options[:componentlist] = true
+    end
   end
 
   # this leaves unknown arguments alone
@@ -353,6 +364,11 @@ def parse_opts
       exit 1
     end
     unless options[:path]
+      puts optparse
+      exit 1
+    end
+  when :component
+    unless options[:projectkey] && options[:componentlist]
       puts optparse
       exit 1
     end
@@ -549,6 +565,14 @@ begin
       if options[:debug]
         ap response
       end
+    when :component
+      hashifier = Atlassian::Hashifiers::JiraComponent.new()
+      response = client.component_get(options[:projectkey], options)
+      components = []
+      response.each do |comp|
+        components << hashifier.get_hash(comp)
+      end
+      display_using_outputter(options, :jira_component_list, components)
 
     else
       raise "ERROR: unhandled command #{options[:command]}"
