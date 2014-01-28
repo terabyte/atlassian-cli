@@ -53,6 +53,7 @@ def parse_opts
     :cacert => nil,
     :onlyfield => nil,
     :fields => {},
+    :customfields => {},
     :assignee => nil,
     :priority => nil,
     :components => [],
@@ -241,7 +242,12 @@ def parse_opts
     o.on('--field NAME,"TEXT"', Array, "Text of description field") do |n,t|
       options[:fields][n.to_sym] = t
     end
-    o.separator "    Valid fields include summary, description, duedate, environment, timeestimate"
+    o.separator "    (some example Valid fields include summary, description, duedate, environment, timeestimate)"
+
+    o.on('--customfield NAME,"JSON"', Array, "Name of a custom field plus the json representation of the value (see: https://developer.atlassian.com/display/JIRADEV/JIRA+REST+API+Example+-+Create+Issue for examples)") do |n,t|
+      options[:customfields][n.to_sym] = JSON.parse(t)
+    end
+    o.separator "    (an example multiselect is: '[{\"value\":\"red\"},{\"value\":\"blue\"}]')"
 
     o.separator ""
     o.separator "Transition Options:"
@@ -509,6 +515,7 @@ begin
         :projectkey => options[:projectkey],
         :issuetype => options[:issuetype],
         :parent => options[:parent],
+        :customfields => options[:customfields],
       }
 
       response = client.issue_create(create_opts)

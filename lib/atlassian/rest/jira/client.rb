@@ -329,6 +329,11 @@ module Atlassian
             :fields => opts[:fields],
           }
 
+          opts[:customfields].each_pair do |n,cf|
+            json[:fields][n] = cf
+          end
+
+
           # DEVS: use this to get the create meta for all projects
           #createmeta = json_get("rest/api/#{@api_version}/issue/createmeta")
           #ap createmeta
