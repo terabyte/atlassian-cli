@@ -497,6 +497,7 @@ begin
         :commentText => options[:commentText],
         :issuetype => options[:issuetype],
         :parent => options[:parent],
+        :customfields => options[:customfields],
       }
 
       response = client.issue_update(issue, edit_opts)

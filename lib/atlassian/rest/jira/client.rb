@@ -144,6 +144,10 @@ module Atlassian
             json[:update][f] = [ { :set => edit_opts[:fields][f] } ]
           end
 
+          edit_opts[:customfields].andand.each_pair do |n,cf|
+            json[:fields][n] = cf
+          end
+
           if edit_opts[:commentText]
             json[:update][:comment] = [ {
               :add => {
@@ -332,7 +336,6 @@ module Atlassian
           opts[:customfields].each_pair do |n,cf|
             json[:fields][n] = cf
           end
-
 
           # DEVS: use this to get the create meta for all projects
           #createmeta = json_get("rest/api/#{@api_version}/issue/createmeta")
