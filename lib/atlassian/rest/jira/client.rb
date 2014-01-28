@@ -480,7 +480,7 @@ module Atlassian
             assignees = json_get("rest/api/#{@api_version}/user/assignable/search?project=#{opts[:projectkey]}&maxResults=2&username=#{URI.escape(opts[:assignee])}")
 
             if (assignees.size != 1)
-              @log.error "Unable to find UNIQUE assignee for #{edit_opts[:assignee]}, ignoring (try a larger substring, check spelling?)"
+              @log.error "Unable to find UNIQUE assignee for #{opts[:assignee]}, ignoring (try a larger substring, check spelling?)"
               @log.error "Candidates: " + assignees.map {|x| x[:name] }.join(", ")
             else
               json[:fields][:assignee] = { :name => assignees.first[:name] }
