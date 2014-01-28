@@ -16,15 +16,15 @@ candidate for using with the atlas-cli.
     atlas-jira-cli jql "assignee = someuser and project = QA and created > -1d"
     atlas-jira-cli view QA-1234
     atlas-jira-cli transition QA-1234 --editState close
-    atlas-jira-cli edit QA-1234 --fixversion='+1.1.1' --fixversion='-1.1.0' --commentText "bumping to a later release"
-    atlas-jira-cli comment QA-1234 --commentText "This is harder than I thought!"
-    atlas-jira-cli create --projectKey QA --summary "File all the tickets!" \
+    atlas-jira-cli edit QA-1234 --fix-versions='+1.1.1' --fix-versions='-1.1.0' --comment "bumping to a later release"
+    atlas-jira-cli comment QA-1234 --comment "This is harder than I thought!"
+    atlas-jira-cli create --project-key QA --summary "File all the tickets!" \
             --description "Meme of the year, amirite?" \
             --priority p1 \
-            --component regression \
-            --affectsversion 1.0.0 \
-            --affectsversion 1.1.0 \
-            --fixversion 1.1.1
+            --components regression \
+            --affects-versions 1.0.0 \
+            --affects-versions 1.1.0 \
+            --fix-versions 1.1.1
 
 # Setting up with RVM
 
@@ -76,6 +76,9 @@ broken up by product.
 * list components, priorities, assignees, etc.
 * issue labels
 * Selectively get only fields we need (PERF)
+* Clean up regex based things (allow exact match, --dry-run, specify by ID, etc)
+* Extract more hashifiers (for comments, etc) for better code reuse
+* A way to query required fields
 
 ## Confluence
 * Fetch raw page, upload raw page
