@@ -69,6 +69,7 @@ broken up by product.
 * Create new issue with no component/type, try to edit it, profit?
 
 ## JIRA
+* fix transition to also update fields, etc, current ignores all but comment
 * Create Components
 * Support converting regular issues to sub-tasks (blocked by https://jira.atlassian.com/browse/JRA-27893)
 * Move issue (also not supported by the rest API: https://answers.atlassian.com/questions/132846/how-move-issue-to-another-project-via-rest-api)
