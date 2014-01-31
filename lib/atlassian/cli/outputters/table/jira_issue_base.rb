@@ -72,6 +72,8 @@ module Atlassian
             :updated => true,
             :fixversions => true,
             :affectsversions => true,
+            :type => true,
+            :components => true,
           };
 
 
