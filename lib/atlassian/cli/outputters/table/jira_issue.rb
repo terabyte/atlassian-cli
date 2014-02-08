@@ -118,8 +118,9 @@ module Atlassian
               end
               hash[:subtasks].andand.each do |st|
                 key = format_field(st, :key)
+                status = format_field(st, :status)
                 summary = format_field(st, :summary)
-                t << [{:value => key, :alignment => :right}, summary]
+                t << [{:value => "(#{status}) #{key}", :alignment => :right}, summary]
               end
 
               # list comments last

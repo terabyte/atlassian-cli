@@ -144,6 +144,10 @@ module Atlassian
             json[:update][f] = [ { :set => edit_opts[:fields][f] } ]
           end
 
+          edit_opts[:customfields].andand.each_pair do |n,cf|
+            json[:fields][n] = cf
+          end
+
           if edit_opts[:commentText]
             json[:update][:comment] = [ {
               :add => {
@@ -173,7 +177,7 @@ module Atlassian
           end
 
           # If we are updating components, need to fetch the possibilities
-          if !edit_opts[:components].empty?
+          if !edit_opts[:components].andand.empty?
             # create the container
             json[:update][:components] = []
             components = json_get("rest/api/#{@api_version}/project/#{issue[:fields][:project][:key]}/components")
@@ -203,7 +207,7 @@ module Atlassian
           end
 
           # If we are updating issuetype, need to fetch the possibilities
-          if !edit_opts[:issuetype].empty?
+          if !edit_opts[:issuetype].andand.empty?
             found_issue_type = nil
             match = false
             issuetypes = json_get("rest/api/#{@api_version}/issue/createmeta?projectKeys=#{issue[:fields][:project][:key]}")[:projects].first[:issuetypes]
@@ -240,7 +244,7 @@ module Atlassian
           end
 
           # If we are updating fixversions, need to fetch the possibilities
-          if !edit_opts[:fixversions].empty?
+          if !edit_opts[:fixversions].andand.empty?
             # create the container
             # ARGH!  the key "fixVersions" isn't listed in the editmeta API
             # call output...but it works (as of jira 5.2.11 anyways).  and YES,
@@ -273,7 +277,7 @@ module Atlassian
           end
 
           # If we are updating affectsversions, need to fetch the possibilities
-          if !edit_opts[:affectsversions].empty?
+          if !edit_opts[:affectsversions].andand.empty?
             # create the container
             json[:update][:versions] = []
             affectsversions = json_get("rest/api/#{@api_version}/project/#{issue[:fields][:project][:key]}/versions")
@@ -328,6 +332,10 @@ module Atlassian
           json = {
             :fields => opts[:fields],
           }
+
+          opts[:customfields].each_pair do |n,cf|
+            json[:fields][n] = cf
+          end
 
           # DEVS: use this to get the create meta for all projects
           #createmeta = json_get("rest/api/#{@api_version}/issue/createmeta")
@@ -472,7 +480,7 @@ module Atlassian
             assignees = json_get("rest/api/#{@api_version}/user/assignable/search?project=#{opts[:projectkey]}&maxResults=2&username=#{URI.escape(opts[:assignee])}")
 
             if (assignees.size != 1)
-              @log.error "Unable to find UNIQUE assignee for #{edit_opts[:assignee]}, ignoring (try a larger substring, check spelling?)"
+              @log.error "Unable to find UNIQUE assignee for #{opts[:assignee]}, ignoring (try a larger substring, check spelling?)"
               @log.error "Candidates: " + assignees.map {|x| x[:name] }.join(", ")
             else
               json[:fields][:assignee] = { :name => assignees.first[:name] }
@@ -662,6 +670,19 @@ module Atlassian
           response = json_delete("rest/api/#{@api_version}/issue/#{key}")
           @log.info "Successfully deleted issue #{key}"
           response
+        end
+
+        def component_get(project_or_issue_key, opts)
+          # always ensure we are logged in first
+          ensure_logged_in
+
+          @log.debug "Getting components for issue/project #{project_or_issue_key}"
+
+          response = json_get("/rest/api/#{@api_version}/project/#{project_or_issue_key}/components")
+          if opts[:debug]
+            ap response
+          end
+          return response
         end
 
         # TODO: http://localhost:2990/jira/rest/api/#{@api_version}/resolution

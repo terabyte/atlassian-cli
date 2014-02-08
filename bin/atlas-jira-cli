@@ -14,12 +14,14 @@ end
 
 require 'atlassian/cli/credentials'
 require 'atlassian/hashifiers/jira_issue'
+require 'atlassian/hashifiers/jira_component'
 require 'atlassian/monkeypatch'
 require 'atlassian/rest/jira/client'
 
 # outputters
 require 'atlassian/cli/outputters/table/jira_issue'
 require 'atlassian/cli/outputters/table/jira_issue_list'
+require 'atlassian/cli/outputters/table/jira_component_list'
 require 'atlassian/cli/outputters/json/jira_issue'
 require 'atlassian/cli/outputters/json/jira_issue_list'
 
@@ -41,6 +43,7 @@ VALID_COMMANDS = {
   :attachment => "Create/Update an attachment on an issue",
   :delete_attachment => "Delete an attachment on an issue (requires issue key AND --filename, OR --id [attachment id]",
   :download_attachment => "Download an attachment (requires issue key AND --filename, OR --id [attachment id])",
+  :component => "List/Create/Delete components",
 }
 
 def parse_opts
@@ -53,6 +56,7 @@ def parse_opts
     :cacert => nil,
     :onlyfield => nil,
     :fields => {},
+    :customfields => {},
     :assignee => nil,
     :priority => nil,
     :components => [],
@@ -241,7 +245,12 @@ def parse_opts
     o.on('--field NAME,"TEXT"', Array, "Text of description field") do |n,t|
       options[:fields][n.to_sym] = t
     end
-    o.separator "    Valid fields include summary, description, duedate, environment, timeestimate"
+    o.separator "    (some example Valid fields include summary, description, duedate, environment, timeestimate)"
+
+    o.on('--customfield NAME,"JSON"', Array, "Name of a custom field plus the json representation of the value (see: https://developer.atlassian.com/display/JIRADEV/JIRA+REST+API+Example+-+Create+Issue for examples)") do |n,t|
+      options[:customfields][n.to_sym] = JSON.parse(t)
+    end
+    o.separator "    (an example multiselect is: '[{\"value\":\"red\"},{\"value\":\"blue\"}]')"
 
     o.separator ""
     o.separator "Transition Options:"
@@ -286,6 +295,14 @@ def parse_opts
 
     o.on('--filename [name]', "The filename of the attachment to delete or download") do |fn|
       options[:filename] = fn
+    end
+
+    o.separator ""
+    o.separator "Component Options:"
+    o.separator ""
+
+    o.on('--list', "List components for a given project (requires --project-key)") do
+      options[:componentlist] = true
     end
   end
 
@@ -353,6 +370,11 @@ def parse_opts
       exit 1
     end
     unless options[:path]
+      puts optparse
+      exit 1
+    end
+  when :component
+    unless options[:projectkey] && options[:componentlist]
       puts optparse
       exit 1
     end
@@ -491,6 +513,7 @@ begin
         :commentText => options[:commentText],
         :issuetype => options[:issuetype],
         :parent => options[:parent],
+        :customfields => options[:customfields],
       }
 
       response = client.issue_update(issue, edit_opts)
@@ -509,6 +532,7 @@ begin
         :projectkey => options[:projectkey],
         :issuetype => options[:issuetype],
         :parent => options[:parent],
+        :customfields => options[:customfields],
       }
 
       response = client.issue_create(create_opts)
@@ -549,6 +573,14 @@ begin
       if options[:debug]
         ap response
       end
+    when :component
+      hashifier = Atlassian::Hashifiers::JiraComponent.new()
+      response = client.component_get(options[:projectkey], options)
+      components = []
+      response.each do |comp|
+        components << hashifier.get_hash(comp)
+      end
+      display_using_outputter(options, :jira_component_list, components)
 
     else
       raise "ERROR: unhandled command #{options[:command]}"
