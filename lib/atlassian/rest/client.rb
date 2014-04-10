@@ -105,6 +105,13 @@ module Atlassian
           @raw_http_client.receive_timeout = @timeout
         end
 
+        # Some infrastructures refuse to talk SSL in an effort to have perfect forward secrecy.
+        # The httpclient default is SSLv3 which a server that forces TLS will
+        # refuse to speak.  Using SSLv23 lets us talk SSLv2, SSLv3, and TLS,
+        # for the widest compatibility.
+        #
+        # For details, see: https://www.openssl.org/docs/ssl/SSL_CTX_new.html
+        @raw_http_client.ssl_config.ssl_version = "SSLv23"
         if options[:cacert]
           @log.debug "Adding custom CA certificate #{options[:cacert]}"
           @raw_http_client.ssl_config.add_trust_ca(options[:cacert])
