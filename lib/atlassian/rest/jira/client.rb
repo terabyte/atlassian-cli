@@ -207,7 +207,7 @@ module Atlassian
           end
 
           # If we are updating issuetype, need to fetch the possibilities
-          if !edit_opts[:issuetype].andand.empty?
+          if !edit_opts[:issuetype].nil? && !edit_opts[:issuetype].empty?
             found_issue_type = nil
             match = false
             issuetypes = json_get("rest/api/#{@api_version}/issue/createmeta?projectKeys=#{issue[:fields][:project][:key]}")[:projects].first[:issuetypes]
@@ -241,10 +241,14 @@ module Atlassian
             else
               raise Atlassian::IllegalArgumentError.new("Unable to find matching issue type for regex #{edit_opts[:issuetype]}")
             end
+          else
+            # not changing issue type, but still have to specify it to ensure it doesn't change
+            json[:fields] = {} if json[:fields].nil?
+            json[:fields][:issuetype] = { :id => issue[:fields][:issuetype][:id] }
           end
 
           # If we are updating fixversions, need to fetch the possibilities
-          if !edit_opts[:fixversions].andand.empty?
+          if !edit_opts[:fixversions].nil? && !edit_opts[:fixversions].empty?
             # create the container
             # ARGH!  the key "fixVersions" isn't listed in the editmeta API
             # call output...but it works (as of jira 5.2.11 anyways).  and YES,
