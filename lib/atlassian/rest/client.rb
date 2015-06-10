@@ -14,15 +14,7 @@ module Atlassian
         attr_accessor :message
         attr_accessor :status
 
-        def initialize(status)
-          initialize(status, nil, nil)
-        end
-
-        def initialize(status, content)
-          initialize(status, content, nil)
-        end
-
-        def initialize(status, content, message)
+        def initialize(status, content = nil, message = nil)
           @status = status
           @content = content
           @message = message
