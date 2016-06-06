@@ -32,7 +32,9 @@ Since atlassian-cli requries a custom version of the terminal-table gem, it must
 
 To set this up, it is advised you do the following:
 
-    rvm use ruby-2.0.0@atlascli --create
+    rvm install ruby # if not already done, will grab newest c-ruby
+    rvm use ruby@atlascli --create
+    gem install bundler # may be needed
     bundle install
     # create a bash script in your path, obviously adjust the paths to point to
     # your rvm directory and your checkout of atlassian-cli
@@ -42,6 +44,9 @@ To set this up, it is advised you do the following:
     RVM_DIR=/home/$USER/.rvm
     GEMSET=ruby-2.0.0-p195@atlascli
     cd $ATLAS_CLI_DIR && $RVM_DIR/bin/$GEMSET -S bundle exec $ATLAS_CLI_DIR/bin/atlas-jira-cli "$@"
+
+    # you may also have to run this once for each ruby to generate the stubs, depending on your rvm version:
+    rvm wrapper ruby@atlascli
 
 # Authentication
 
