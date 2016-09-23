@@ -1,4 +1,3 @@
-
 module Atlassian
   module Cli
     class Credentials
@@ -7,7 +6,6 @@ module Atlassian
 
       def initialize
         @credential_getters = []
-        @credential_getters << NetRc.new()
         @credential_getters << Prompt.new()
       end
 
@@ -33,47 +31,6 @@ module Atlassian
 
 
       # implementations
-
-      class NetRc
-
-        NETRC_PATH = '.netrc'
-        NETRC_HOST = 'atlassian-cli.example.com'
-
-        # netrc ignores provided username
-        def get_credentials(provided_user = nil, provided_pw = nil)
-          File.open(File.join(Dir.home, NETRC_PATH)) do |f|
-            found_start = false
-            username = nil
-            password = nil
-            f.each_line do |l|
-              break if found_start && username && password
-
-              if l.match("^machine #{NETRC_HOST}$")
-                found_start = true
-                next
-              end
-
-              next unless found_start
-
-              if l.match("^login (.*)$")
-                username = $1
-                next
-              end
-
-              if l.match("^password (.*)$")
-                password = $1
-                next
-              end
-            end
-
-            if found_start && username && password
-              return [username, password]
-            end
-            return [nil, nil]
-          end
-        end
-
-      end # end class NetRc
 
       class Prompt
 
